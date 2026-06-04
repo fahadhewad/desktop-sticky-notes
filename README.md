@@ -10,11 +10,13 @@ and a glass UI that can match your wallpaper's colours.
 
 ## Features
 
-- **To-dos** — quick capture, check off, inline-edit (double-click), drag to
-  reorder, and *Clear done*. Each records `createdAt` / `completedAt`.
+- **To-dos** — multiple **boards** you switch between; quick capture, check off,
+  inline-edit (double-click), drag to reorder, **colour labels** with filtering,
+  and *Clear done*.
 - **Schedule** — time-based recurring reminders (once / daily / weekdays /
-  weekly), fully editable inline. When one is due it highlights on the widget
-  **and** fires a native Windows notification — and you can **snooze** it.
+  weekly), fully editable inline, with a per-reminder **sound** toggle. When one
+  is due it highlights on the widget **and** fires a native Windows notification
+  — and you can **snooze** it (10 min / 1 hour / this evening / tomorrow).
 - **Smart reminders** — every completion is logged, and each reminder learns
   your *usual* completion time. Flip on **adapt** (the sparkle) and it fires at
   your real usual time instead of the set one.
@@ -24,6 +26,8 @@ and a glass UI that can match your wallpaper's colours.
   quit from the tray menu.
 - **Yours to tune** — adjustable widget **opacity** and an optional **launch at
   startup** so it's there every time you log in.
+- **Keyboard shortcuts** — a global hotkey (Ctrl+Shift+S) to show/hide from
+  anywhere, Ctrl+N to jump to quick-add, Esc to tuck away.
 - **Wallpaper-matched theme** — derives the glass tint and accent from your
   current wallpaper and re-themes when you change it. Or turn it off and pick a
   manual accent.
@@ -70,8 +74,8 @@ folder). No account, no server.
 
 ## Roadmap
 
-- Multiple notes / colour labels / tags.
-- Per-reminder sounds.
+- Named tags and full-text search across boards.
+- Optional cloud sync.
 
 ## License
 
