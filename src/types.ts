@@ -27,6 +27,8 @@ export interface ScheduleItem {
   // When true, the reminder fires at the learned "usual" time (derived from
   // completionHistory) instead of the set time.
   adaptive?: boolean
+  // When true, the due notification is silent (no sound).
+  silent?: boolean
 }
 
 export interface SizeProfile {

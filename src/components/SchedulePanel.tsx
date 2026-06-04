@@ -22,6 +22,34 @@ const REPEATS: Repeat[] = ['daily', 'weekdays', 'weekly', 'once']
 
 const byTime = (a: ScheduleItem, b: ScheduleItem) => a.time.localeCompare(b.time)
 
+// --- snooze duration helpers ---
+const minutesUntil = (target: Date) => Math.max(1, Math.round((target.getTime() - Date.now()) / 60000))
+const atToday = (h: number, m: number) => {
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  return d
+}
+const SNOOZE_CHOICES: { label: string; mins: () => number }[] = [
+  { label: '10 minutes', mins: () => 10 },
+  { label: '1 hour', mins: () => 60 },
+  {
+    label: 'This evening',
+    mins: () => {
+      const d = atToday(18, 0)
+      if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1)
+      return minutesUntil(d)
+    },
+  },
+  {
+    label: 'Tomorrow 9am',
+    mins: () => {
+      const d = atToday(9, 0)
+      d.setDate(d.getDate() + 1)
+      return minutesUntil(d)
+    },
+  },
+]
+
 export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue }: Props) {
   const [text, setText] = useState('')
   const [time, setTime] = useState('09:00')
@@ -32,6 +60,9 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   const [editText, setEditText] = useState('')
   const [editTime, setEditTime] = useState('09:00')
   const [editRepeat, setEditRepeat] = useState<Repeat>('daily')
+  const [editSilent, setEditSilent] = useState(false)
+
+  const [snoozeOpenId, setSnoozeOpenId] = useState<string | null>(null)
 
   const add = () => {
     const t = text.trim()
@@ -63,10 +94,11 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   const toggleAdaptive = (id: string) =>
     setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, adaptive: !s.adaptive } : s)))
 
-  // Re-fire a due reminder after a short delay (handled in the main process).
+  // Re-fire a due reminder after a delay (handled in the main process).
   const snooze = (id: string, minutes: number) => {
     api.snoozeReminder(id, minutes)
     clearDue(id)
+    setSnoozeOpenId(null)
   }
 
   const startEdit = (item: ScheduleItem) => {
@@ -74,6 +106,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
     setEditText(item.text)
     setEditTime(item.time)
     setEditRepeat(item.repeat)
+    setEditSilent(item.silent ?? false)
   }
   const commitEdit = () => {
     if (!editingId) return
@@ -81,7 +114,9 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
     setSchedule((prev) =>
       prev
         .map((s) =>
-          s.id === editingId ? { ...s, text: t || s.text, time: editTime, repeat: editRepeat } : s,
+          s.id === editingId
+            ? { ...s, text: t || s.text, time: editTime, repeat: editRepeat, silent: editSilent }
+            : s,
         )
         .sort(byTime),
     )
@@ -208,6 +243,26 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                         ))}
                       </select>
                       <button
+                        type="button"
+                        onClick={() => setEditSilent((v) => !v)}
+                        title={editSilent ? 'Sound off — click to enable' : 'Sound on — click to mute'}
+                        aria-label="Toggle reminder sound"
+                        aria-pressed={!editSilent}
+                        className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-colors"
+                        style={{
+                          borderColor: editSilent ? 'var(--line)' : 'var(--accent)',
+                          backgroundColor: editSilent ? 'transparent' : 'var(--accent-soft)',
+                          color: editSilent ? 'var(--ink-soft)' : 'var(--accent)',
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                          {editSilent && <path d="M3 3l18 18" />}
+                        </svg>
+                        Sound
+                      </button>
+                      <button
                         onClick={commitEdit}
                         className="ml-auto rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent transition-transform hover:scale-105 active:scale-95"
                       >
@@ -260,13 +315,29 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                       </button>
                     )}
                     {due && (
-                      <button
-                        onClick={() => snooze(item.id, 10)}
-                        title="Snooze 10 minutes"
-                        className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
-                      >
-                        Snooze
-                      </button>
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => setSnoozeOpenId(snoozeOpenId === item.id ? null : item.id)}
+                          aria-haspopup="menu"
+                          aria-expanded={snoozeOpenId === item.id}
+                          className="rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
+                        >
+                          Snooze
+                        </button>
+                        {snoozeOpenId === item.id && (
+                          <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-lg border border-line bg-glass-strong p-1 shadow-card backdrop-blur-2xl">
+                            {SNOOZE_CHOICES.map((c) => (
+                              <button
+                                key={c.label}
+                                onClick={() => snooze(item.id, c.mins())}
+                                className="block w-full rounded-md px-2 py-1 text-left text-[11px] text-ink-soft transition-colors hover:bg-accent-soft hover:text-accent"
+                              >
+                                {c.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                     <button
                       onClick={() => markDone(item.id)}

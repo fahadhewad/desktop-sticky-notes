@@ -154,7 +154,7 @@ function hideToTray() {
 // --- reminders ---
 function onTaskDue(item) {
   if (Notification.isSupported()) {
-    new Notification({ title: 'Reminder', body: item.text, silent: false }).show()
+    new Notification({ title: 'Reminder', body: item.text, silent: !!item.silent }).show()
   }
   if (win) win.webContents.send('task:due', item.id)
 }
