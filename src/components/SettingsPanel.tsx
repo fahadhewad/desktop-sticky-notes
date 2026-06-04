@@ -137,6 +137,25 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
           ))}
         </div>
 
+        {/* ---- Opacity ---- */}
+        <Label>Opacity</Label>
+        <div className="mb-4">
+          <div className="mb-1 flex justify-between text-[11px] text-ink-soft">
+            <span>Transparency</span>
+            <span>{Math.round((settings.opacity ?? 1) * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min={0.6}
+            max={1}
+            step={0.02}
+            value={settings.opacity ?? 1}
+            onChange={(e) => setSettings((s) => ({ ...s, opacity: Number(e.target.value) }))}
+            className="w-full"
+            style={{ accentColor: 'var(--accent)' }}
+          />
+        </div>
+
         {/* ---- Theme ---- */}
         <Label>Theme</Label>
         <button

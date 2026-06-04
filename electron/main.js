@@ -16,6 +16,7 @@ const defaults = {
     height: 460,
     matchWallpaper: true,
     accentColor: '#f6b06b',
+    opacity: 1,
     sizeProfiles: [
       { id: 'compact', name: 'Compact', width: 560, height: 380 },
       { id: 'standard', name: 'Standard', width: 720, height: 460 },

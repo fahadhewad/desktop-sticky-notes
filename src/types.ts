@@ -42,6 +42,7 @@ export interface Settings {
   matchWallpaper: boolean
   accentColor: string // manual accent used when matchWallpaper is off
   sizeProfiles: SizeProfile[]
+  opacity?: number // overall widget opacity (0.6–1)
   position?: { x: number; y: number }
 }
 
