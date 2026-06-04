@@ -193,6 +193,26 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
           </div>
         )}
 
+        {/* ---- Startup ---- */}
+        <Label>Startup</Label>
+        <button
+          onClick={() => setSettings((s) => ({ ...s, launchAtStartup: !s.launchAtStartup }))}
+          className="mb-1 flex w-full items-center justify-between rounded-lg border border-line px-3 py-2"
+        >
+          <span className="text-xs text-ink">Launch at startup</span>
+          <span
+            className="relative h-5 w-9 rounded-full transition-colors"
+            style={{ backgroundColor: settings.launchAtStartup ? 'var(--accent)' : 'var(--line)' }}
+          >
+            <motion.span
+              layout
+              className="absolute top-0.5 h-4 w-4 rounded-full bg-white"
+              animate={{ left: settings.launchAtStartup ? 18 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+            />
+          </span>
+        </button>
+
         <div className="mt-auto pt-5 text-center text-[10px] text-ink-soft">
           Desktop Sticky Notes · v{__APP_VERSION__}
         </div>

@@ -17,6 +17,7 @@ const defaults = {
     matchWallpaper: true,
     accentColor: '#f6b06b',
     opacity: 1,
+    launchAtStartup: false,
     sizeProfiles: [
       { id: 'compact', name: 'Compact', width: 560, height: 380 },
       { id: 'standard', name: 'Standard', width: 720, height: 460 },
@@ -162,6 +163,15 @@ function startScheduler() {
   rescheduleAll(store.get('schedule'), onTaskDue)
 }
 
+// Reflect the "launch at startup" setting into the OS login items.
+function applyLoginItem(settings) {
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!(settings && settings.launchAtStartup) })
+  } catch (err) {
+    console.warn('[startup] setLoginItemSettings failed:', err.message)
+  }
+}
+
 // --- IPC ---
 ipcMain.handle('state:load', () => ({
   todos: store.get('todos'),
@@ -172,6 +182,7 @@ ipcMain.handle('state:load', () => ({
 ipcMain.handle('state:save', (_e, key, value) => {
   store.set(key, value)
   if (key === 'schedule') startScheduler()
+  if (key === 'settings') applyLoginItem(value)
 })
 
 ipcMain.on('window:resize', (_e, width, height) => {
@@ -202,6 +213,7 @@ app.whenReady().then(() => {
   createWindow()
   createTray()
   startScheduler()
+  applyLoginItem(store.get('settings'))
   unwatch = watchWallpaper((theme) => {
     if (win) win.webContents.send('theme:changed', theme)
   })
