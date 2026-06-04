@@ -97,7 +97,7 @@ export default function App() {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="h-full w-full overflow-hidden rounded-xl2 border border-line bg-glass shadow-soft backdrop-blur-2xl"
+      className="h-full w-full overflow-hidden rounded-xl2 border border-line bg-glass shadow-card backdrop-blur-2xl backdrop-saturate-150"
       style={{ transition: 'background 0.6s ease, border-color 0.6s ease' }}
     >
       <div className="flex h-full flex-col">

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,11 +27,12 @@ body,
 body {
   /* Transparent so only our frosted card shows on the desktop. */
   background: transparent;
-  font-family: 'Inter', system-ui, 'Segoe UI', sans-serif;
+  font-family: 'Inter Variable', 'Inter', system-ui, 'Segoe UI', sans-serif;
   color: var(--ink);
   overflow: hidden;
   user-select: none;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* The draggable region for moving the frameless window around. */
@@ -43,13 +43,31 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* Keyboard focus ring (shown for keyboard users, not on mouse clicks). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Text selection picks up the accent. */
+::selection {
+  background: var(--accent-soft);
+}
+
 /* Slim, unobtrusive scrollbars inside the panels. */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
 .scroll-area::-webkit-scrollbar {
   width: 6px;
 }
 .scroll-area::-webkit-scrollbar-thumb {
   background: var(--line);
   border-radius: 999px;
+}
+.scroll-area::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-soft);
 }
 .scroll-area::-webkit-scrollbar-track {
   background: transparent;
@@ -58,4 +76,14 @@ body {
 input,
 textarea {
   font-family: inherit;
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

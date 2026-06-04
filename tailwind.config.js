@@ -18,10 +18,14 @@ export default {
         xl2: '1.25rem',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'Segoe UI', 'sans-serif'],
+        sans: ['Inter Variable', 'Inter', 'system-ui', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 10px 40px -12px rgba(0,0,0,0.35)',
+        // Depth + a hairline top highlight for the frosted-glass edge. Named
+        // 'card' (not 'glass') to avoid colliding with the 'glass' color, which
+        // would otherwise turn `shadow-glass` into a shadow-color utility.
+        card: '0 24px 70px -24px rgba(0,0,0,0.5), inset 0 1px 0 0 rgba(255,255,255,0.14)',
       },
     },
   },

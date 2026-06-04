@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
     "framer-motion": "^11.3.8",
     "node-schedule": "^2.1.1",
     "node-vibrant": "^3.1.6",
