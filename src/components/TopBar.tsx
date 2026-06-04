@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import { api } from '../api'
 
 interface Props {
@@ -6,26 +6,27 @@ interface Props {
   settingsOpen: boolean
 }
 
-// A thin draggable strip. The traffic-light controls and the settings gear stay
-// invisible until the strip is hovered, keeping the widget clean and chrome-free.
+// A thin draggable strip. A subtle clock sits in the middle; the window controls
+// and settings gear stay invisible until the strip is hovered, keeping the
+// widget clean and chrome-free.
 export default function TopBar({ onOpenSettings, settingsOpen }: Props) {
   return (
     <div className="drag group relative flex h-9 shrink-0 items-center px-3">
       {/* Hover-revealed window controls (left) */}
-      <motion.div
-        className="no-drag flex items-center gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-      >
-        <Dot color="#ff5f57" hover="#ff5f57" label="Close" onClick={() => api.close()} />
-        <Dot color="#febc2e" hover="#febc2e" label="Minimise" onClick={() => api.minimize()} />
-        <Dot color="#28c840" hover="#28c840" label="Maximise" onClick={() => api.toggleMaximize()} />
-      </motion.div>
+      <div className="no-drag flex items-center gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <Dot color="#ff5f57" label="Close" onClick={() => api.close()} />
+        <Dot color="#febc2e" label="Hide to tray" onClick={() => api.minimize()} />
+        <Dot color="#28c840" label="Maximise" onClick={() => api.toggleMaximize()} />
+      </div>
+
+      <Clock />
 
       <div className="flex-1" />
 
       {/* Hover-revealed settings gear (right) */}
       <button
         onClick={onOpenSettings}
-        className={`no-drag flex h-6 w-6 items-center justify-center rounded-full text-ink-soft transition-all duration-200 hover:bg-accent-soft hover:text-accent ${
+        className={`no-drag relative z-10 flex h-6 w-6 items-center justify-center rounded-full text-ink-soft transition-all duration-200 hover:bg-accent-soft hover:text-accent active:scale-95 ${
           settingsOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         title="Settings"
@@ -40,22 +41,30 @@ export default function TopBar({ onOpenSettings, settingsOpen }: Props) {
   )
 }
 
-function Dot({
-  color,
-  label,
-  onClick,
-}: {
-  color: string
-  hover: string
-  label: string
-  onClick: () => void
-}) {
+// A quiet ambient clock + date, centred in the top strip. Updates every 30s.
+function Clock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+  const time = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const date = now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap text-[11px] font-medium text-ink-soft">
+      {time}
+      <span className="opacity-50"> · {date}</span>
+    </div>
+  )
+}
+
+function Dot({ color, label, onClick }: { color: string; label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="h-3 w-3 rounded-full transition-transform duration-150 hover:scale-110"
+      className="h-3 w-3 rounded-full transition-transform duration-150 hover:scale-110 active:scale-95"
       style={{ backgroundColor: color }}
     />
   )

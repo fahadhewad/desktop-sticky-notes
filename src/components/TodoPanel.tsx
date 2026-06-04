@@ -80,7 +80,7 @@ export default function TodoPanel({ todos, setTodos }: Props) {
         />
         <button
           onClick={add}
-          className="shrink-0 rounded-lg bg-accent-soft px-2 py-1 text-xs font-medium text-accent transition-transform duration-150 hover:scale-105"
+          className="shrink-0 rounded-lg bg-accent-soft px-2 py-1 text-xs font-medium text-accent transition-transform duration-150 hover:scale-105 active:scale-95"
         >
           Add
         </button>
@@ -108,9 +108,19 @@ export default function TodoPanel({ todos, setTodos }: Props) {
                 aria-label={todo.done ? 'Mark not done' : 'Mark done'}
               >
                 {todo.done && (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                  <motion.svg
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                    width="9"
+                    height="9"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3.5"
+                  >
                     <path d="M5 12l5 5L20 6" />
-                  </svg>
+                  </motion.svg>
                 )}
               </button>
 
@@ -174,7 +184,21 @@ export default function TodoPanel({ todos, setTodos }: Props) {
         </AnimatePresence>
 
         {todos.length === 0 && (
-          <p className="mt-6 text-center text-xs text-ink-soft">Nothing yet — add your first task.</p>
+          <div className="mt-10 flex flex-col items-center gap-2.5 px-4 text-center">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-ink-soft opacity-50"
+            >
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <p className="text-xs text-ink-soft">Nothing yet — add your first task.</p>
+          </div>
         )}
       </div>
     </section>

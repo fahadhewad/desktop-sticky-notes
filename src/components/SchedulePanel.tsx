@@ -126,7 +126,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                 </select>
                 <button
                   onClick={add}
-                  className="ml-auto rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent transition-transform hover:scale-105"
+                  className="ml-auto rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent transition-transform hover:scale-105 active:scale-95"
                 >
                   Add
                 </button>
@@ -236,9 +236,23 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
         </AnimatePresence>
 
         {schedule.length === 0 && !adding && (
-          <p className="mt-6 text-center text-xs text-ink-soft">
-            No reminders yet — add one with “+ New”.
-          </p>
+          <div className="mt-10 flex flex-col items-center gap-2.5 px-4 text-center">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-ink-soft opacity-50"
+            >
+              <circle cx="12" cy="13" r="8" />
+              <path d="M12 9v4l2.5 2" />
+              <path d="M5 3L2.5 5.5" />
+              <path d="M19 3l2.5 2.5" />
+            </svg>
+            <p className="text-xs text-ink-soft">No reminders yet — add one with “+ New”.</p>
+          </div>
         )}
       </div>
     </section>
