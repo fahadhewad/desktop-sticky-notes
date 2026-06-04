@@ -1,5 +1,5 @@
 'use strict'
-const { app, BrowserWindow, ipcMain, Notification } = require('electron')
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const { pinToDesktop } = require('./win32')
@@ -27,6 +27,8 @@ const defaults = {
 const store = new Store({ defaults })
 
 let win = null
+let tray = null
+let hintShown = false
 let unpin = () => {}
 let unwatch = () => {}
 
@@ -41,6 +43,7 @@ function createWindow() {
     y: pos.y,
     minWidth: 420,
     minHeight: 320,
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     frame: false,
     transparent: true,
     resizable: true,
@@ -97,6 +100,55 @@ function createWindow() {
   })
 }
 
+// --- system tray: the widget tucks away here instead of cluttering the taskbar ---
+function createTray() {
+  tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray.png')))
+  tray.setToolTip('Desktop Sticky Notes')
+
+  const refresh = () => {
+    const visible = !!win && win.isVisible()
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: visible ? 'Hide widget' : 'Show widget', click: toggleWindow },
+        { type: 'separator' },
+        { label: 'Quit', click: () => app.quit() },
+      ]),
+    )
+  }
+
+  refresh()
+  tray.on('click', toggleWindow)
+  if (win) {
+    win.on('show', refresh)
+    win.on('hide', refresh)
+  }
+}
+
+function toggleWindow() {
+  if (!win) return
+  if (win.isVisible()) win.hide()
+  else win.show()
+}
+
+// Hide to the tray (used by the widget's "minimise" control). A real minimise is
+// a dead-end here because the window is skipTaskbar, so we hide instead and let
+// the tray bring it back.
+function hideToTray() {
+  if (!win) return
+  win.hide()
+  if (!hintShown) {
+    hintShown = true
+    try {
+      tray.displayBalloon({
+        title: 'Still running',
+        content: 'The widget is tucked away in your tray — click the tray icon to bring it back.',
+      })
+    } catch {
+      /* balloons are best-effort */
+    }
+  }
+}
+
 // --- reminders ---
 function onTaskDue(item) {
   if (Notification.isSupported()) {
@@ -125,10 +177,11 @@ ipcMain.on('window:resize', (_e, width, height) => {
   if (win) win.setSize(Math.round(width), Math.round(height))
 })
 
-ipcMain.on('window:minimize', () => win && win.minimize())
+ipcMain.on('window:minimize', () => hideToTray())
 ipcMain.on('window:toggle-maximize', () => {
   if (!win) return
-  win.isMaximized() ? win.unmaximize() : win.maximize()
+  if (win.isMaximized()) win.unmaximize()
+  else win.maximize()
 })
 ipcMain.on('window:close', () => win && win.close())
 
@@ -141,6 +194,7 @@ ipcMain.on('notify', (_e, title, body) => {
 // --- lifecycle ---
 app.whenReady().then(() => {
   createWindow()
+  createTray()
   startScheduler()
   unwatch = watchWallpaper((theme) => {
     if (win) win.webContents.send('theme:changed', theme)
@@ -154,5 +208,9 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   unpin()
   unwatch()
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
   if (process.platform !== 'darwin') app.quit()
 })
