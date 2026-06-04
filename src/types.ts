@@ -7,6 +7,7 @@ export interface Todo {
   done: boolean
   createdAt: number // epoch ms
   completedAt?: number // epoch ms, set when checked off
+  color?: string // optional label colour (hex)
 }
 
 export type Repeat = 'once' | 'daily' | 'weekdays' | 'weekly'
