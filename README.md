@@ -13,8 +13,8 @@ and a glass UI that can match your wallpaper's colours.
 - **To-dos** — quick capture, check off, inline-edit (double-click), drag to
   reorder, and *Clear done*. Each records `createdAt` / `completedAt`.
 - **Schedule** — time-based recurring reminders (once / daily / weekdays /
-  weekly). When one is due it highlights on the widget **and** fires a native
-  Windows notification.
+  weekly), fully editable inline. When one is due it highlights on the widget
+  **and** fires a native Windows notification — and you can **snooze** it.
 - **Smart reminders** — every completion is logged, and each reminder learns
   your *usual* completion time. Flip on **adapt** (the sparkle) and it fires at
   your real usual time instead of the set one.
@@ -22,6 +22,8 @@ and a glass UI that can match your wallpaper's colours.
   stays on your desktop without covering other apps (Windows, via `user32`).
 - **System tray** — tuck the widget away to the tray and bring it back any time;
   quit from the tray menu.
+- **Yours to tune** — adjustable widget **opacity** and an optional **launch at
+  startup** so it's there every time you log in.
 - **Wallpaper-matched theme** — derives the glass tint and accent from your
   current wallpaper and re-themes when you change it. Or turn it off and pick a
   manual accent.
@@ -69,7 +71,7 @@ folder). No account, no server.
 ## Roadmap
 
 - Multiple notes / colour labels / tags.
-- Snooze and per-reminder sounds.
+- Per-reminder sounds.
 
 ## License
 
