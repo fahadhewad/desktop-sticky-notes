@@ -6,6 +6,7 @@
 const schedule = require('node-schedule')
 
 let jobs = []
+let snoozeJobs = []
 
 // --- smart timing: mirror of usualCompletionMinutes() in src/utils.ts so the
 // scheduler can fire at the user's learned "usual" time when a reminder adapts. ---
@@ -76,4 +77,16 @@ function rescheduleAll(items, onDue) {
   }
 }
 
-module.exports = { rescheduleAll }
+// One-off re-fire for a snoozed reminder. Kept separate from the recurring jobs
+// so rescheduling the recurring set doesn't cancel pending snoozes.
+function snoozeTask(item, minutes, onDue) {
+  const when = new Date(Date.now() + Math.max(1, minutes) * 60000)
+  try {
+    const job = schedule.scheduleJob(when, () => onDue(item))
+    if (job) snoozeJobs.push(job)
+  } catch (err) {
+    console.warn('[scheduler] could not snooze', item.id, err.message)
+  }
+}
+
+module.exports = { rescheduleAll, snoozeTask }

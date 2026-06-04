@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { api } from '../api'
 import type { Repeat, ScheduleItem } from '../types'
 import {
   formatTime,
@@ -61,6 +62,12 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   // Opt a reminder in/out of firing at its learned "usual" time.
   const toggleAdaptive = (id: string) =>
     setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, adaptive: !s.adaptive } : s)))
+
+  // Re-fire a due reminder after a short delay (handled in the main process).
+  const snooze = (id: string, minutes: number) => {
+    api.snoozeReminder(id, minutes)
+    clearDue(id)
+  }
 
   const startEdit = (item: ScheduleItem) => {
     setEditingId(item.id)
@@ -250,6 +257,15 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C12 7 7 12 2 12C7 12 12 17 12 22C12 17 17 12 22 12C17 12 12 7 12 2Z" />
                         </svg>
+                      </button>
+                    )}
+                    {due && (
+                      <button
+                        onClick={() => snooze(item.id, 10)}
+                        title="Snooze 10 minutes"
+                        className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
+                      >
+                        Snooze
                       </button>
                     )}
                     <button

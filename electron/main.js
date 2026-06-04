@@ -4,7 +4,7 @@ const path = require('path')
 const Store = require('electron-store')
 const { pinToDesktop } = require('./win32')
 const { computeTheme, watchWallpaper } = require('./wallpaper')
-const { rescheduleAll } = require('./scheduler')
+const { rescheduleAll, snoozeTask } = require('./scheduler')
 
 const isDev = process.env.NODE_ENV === 'development'
 
@@ -189,6 +189,11 @@ ipcMain.handle('theme:get', () => computeTheme())
 
 ipcMain.on('notify', (_e, title, body) => {
   if (Notification.isSupported()) new Notification({ title, body }).show()
+})
+
+ipcMain.on('reminder:snooze', (_e, id, minutes) => {
+  const item = (store.get('schedule') || []).find((s) => s.id === id)
+  if (item) snoozeTask(item, minutes, onTaskDue)
 })
 
 // --- lifecycle ---

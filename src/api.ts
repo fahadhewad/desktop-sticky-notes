@@ -13,6 +13,7 @@ export interface StickyApi {
   getTheme(): Promise<Theme | null>
   onThemeChanged(cb: (theme: Theme) => void): () => void
   notify(title: string, body: string): void
+  snoozeReminder(id: string, minutes: number): void
   onTaskDue(cb: (id: string) => void): () => void
 }
 
@@ -68,6 +69,7 @@ const browserFallback: StickyApi = {
       new Notification(title, { body })
     }
   },
+  snoozeReminder() {},
   onTaskDue() {
     return () => {}
   },

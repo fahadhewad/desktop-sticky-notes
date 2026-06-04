@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   },
 
   notify: (title, body) => ipcRenderer.send('notify', title, body),
+  snoozeReminder: (id, minutes) => ipcRenderer.send('reminder:snooze', id, minutes),
 
   onTaskDue: (cb) => {
     const handler = (_e, id) => cb(id)
