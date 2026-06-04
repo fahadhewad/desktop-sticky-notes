@@ -4,3 +4,7 @@ release/
 *.log
 .DS_Store
 .vite/
+
+# Intermediate icon sizes (regenerate with `npm run icons`); the used outputs
+# build/icon.png, build/icon.ico and electron/assets/* are committed.
+build/icons/
