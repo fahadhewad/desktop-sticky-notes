@@ -38,3 +38,38 @@ export const REPEAT_LABELS: Record<string, string> = {
   weekdays: 'Weekdays',
   weekly: 'Weekly',
 }
+
+// --- smart timing: learn the usual completion time from history ---
+
+// Minutes since midnight for a timestamp.
+function minutesOfDay(ts: number): number {
+  const d = new Date(ts)
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+// A robust "usual" completion time (median minutes-of-day over recent
+// completions), or null until there's enough history to be meaningful. The
+// median shrugs off the odd late/early completion. Kept in sync with the copy
+// in electron/scheduler.js, which fires reminders at this time when adaptive.
+export function usualCompletionMinutes(
+  history: { completedAt: number }[] | undefined,
+  minSamples = 3,
+  recent = 20,
+): number | null {
+  if (!history || history.length < minSamples) return null
+  const mins = history
+    .slice(-recent)
+    .map((h) => minutesOfDay(h.completedAt))
+    .sort((a, b) => a - b)
+  const mid = Math.floor(mins.length / 2)
+  return mins.length % 2 ? mins[mid] : Math.round((mins[mid - 1] + mins[mid]) / 2)
+}
+
+// "9:12 AM" from minutes-since-midnight.
+export function minutesToTimeLabel(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`
+}

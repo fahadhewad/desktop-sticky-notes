@@ -7,8 +7,35 @@ const schedule = require('node-schedule')
 
 let jobs = []
 
+// --- smart timing: mirror of usualCompletionMinutes() in src/utils.ts so the
+// scheduler can fire at the user's learned "usual" time when a reminder adapts. ---
+function minutesOfDay(ts) {
+  const d = new Date(ts)
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+function usualMinutes(history, minSamples = 3, recent = 20) {
+  if (!history || history.length < minSamples) return null
+  const mins = history
+    .slice(-recent)
+    .map((h) => minutesOfDay(h.completedAt))
+    .sort((a, b) => a - b)
+  const mid = Math.floor(mins.length / 2)
+  return mins.length % 2 ? mins[mid] : Math.round((mins[mid - 1] + mins[mid]) / 2)
+}
+
+// The hour/minute a reminder should actually fire at: the learned time when it
+// adapts and there's enough history, otherwise the set time.
+function effectiveHM(item) {
+  if (item.adaptive) {
+    const u = usualMinutes(item.completionHistory)
+    if (u != null) return [Math.floor(u / 60), u % 60]
+  }
+  return item.time.split(':').map(Number)
+}
+
 function ruleFor(item) {
-  const [hour, minute] = item.time.split(':').map(Number)
+  const [hour, minute] = effectiveHM(item)
   const rule = new schedule.RecurrenceRule()
   rule.hour = hour
   rule.minute = minute

@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Repeat, ScheduleItem } from '../types'
-import { formatTime, relativeDay, REPEAT_LABELS, uid } from '../utils'
+import {
+  formatTime,
+  minutesToTimeLabel,
+  relativeDay,
+  REPEAT_LABELS,
+  uid,
+  usualCompletionMinutes,
+} from '../utils'
 
 interface Props {
   schedule: ScheduleItem[]
@@ -38,7 +45,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
     setAdding(false)
   }
 
-  // Logging completion is what feeds future "remind me at my usual time" logic.
+  // Logging completion is what feeds the "remind me at my usual time" learning.
   const markDone = (id: string) => {
     setSchedule((prev) =>
       prev.map((s) =>
@@ -51,6 +58,10 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   }
 
   const remove = (id: string) => setSchedule((prev) => prev.filter((s) => s.id !== id))
+
+  // Opt a reminder in/out of firing at its learned "usual" time.
+  const toggleAdaptive = (id: string) =>
+    setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, adaptive: !s.adaptive } : s)))
 
   return (
     <section className="flex min-w-0 flex-1 flex-col p-4">
@@ -116,6 +127,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
           {schedule.map((item) => {
             const due = dueIds.has(item.id)
             const lastDone = item.completionHistory.at(-1)?.completedAt
+            const usual = usualCompletionMinutes(item.completionHistory)
             return (
               <motion.div
                 key={item.id}
@@ -142,9 +154,34 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                     <span className="block truncate text-sm text-ink">{item.text}</span>
                     <span className="text-[10px] text-ink-soft">
                       {formatTime(item.time)} · {REPEAT_LABELS[item.repeat]}
+                      {usual != null
+                        ? ` · ${item.adaptive ? 'adapts to' : 'usually'} ~${minutesToTimeLabel(usual)}`
+                        : ''}
                       {lastDone ? ` · last done ${relativeDay(lastDone)}` : ''}
                     </span>
                   </div>
+                  {usual != null && (
+                    <button
+                      onClick={() => toggleAdaptive(item.id)}
+                      title={
+                        item.adaptive
+                          ? `Adapting to your usual time (~${minutesToTimeLabel(usual)})`
+                          : 'Adapt to my usual time'
+                      }
+                      aria-label="Toggle adaptive timing"
+                      aria-pressed={item.adaptive ?? false}
+                      className="shrink-0 rounded-lg border px-1.5 py-1 transition-colors"
+                      style={{
+                        borderColor: item.adaptive ? 'var(--accent)' : 'var(--line)',
+                        backgroundColor: item.adaptive ? 'var(--accent-soft)' : 'transparent',
+                        color: item.adaptive ? 'var(--accent)' : 'var(--ink-soft)',
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C12 7 7 12 2 12C7 12 12 17 12 22C12 17 17 12 22 12C17 12 12 7 12 2Z" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => markDone(item.id)}
                     className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"

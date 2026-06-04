@@ -22,8 +22,11 @@ export interface ScheduleItem {
   repeat: Repeat
   weekday?: number // 0-6 (Sun-Sat), used when repeat === 'weekly'
   createdAt: number
-  // Full history so future versions can learn the user's real timing.
+  // Full history so we can learn the user's real timing.
   completionHistory: CompletionRecord[]
+  // When true, the reminder fires at the learned "usual" time (derived from
+  // completionHistory) instead of the set time.
+  adaptive?: boolean
 }
 
 export interface SizeProfile {
