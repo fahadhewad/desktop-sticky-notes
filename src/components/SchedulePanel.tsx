@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Repeat, ScheduleItem } from '../types'
-import { formatTime, REPEAT_LABELS, uid } from '../utils'
+import { formatTime, relativeDay, REPEAT_LABELS, uid } from '../utils'
 
 interface Props {
   schedule: ScheduleItem[]
@@ -142,7 +142,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                     <span className="block truncate text-sm text-ink">{item.text}</span>
                     <span className="text-[10px] text-ink-soft">
                       {formatTime(item.time)} · {REPEAT_LABELS[item.repeat]}
-                      {lastDone ? ' · last done today' : ''}
+                      {lastDone ? ` · last done ${relativeDay(lastDone)}` : ''}
                     </span>
                   </div>
                   <button

@@ -15,8 +15,10 @@ function load() {
   const user32 = koffi.load('user32.dll')
 
   // HWNDs are pointer-sized; using uintptr_t lets us pass the raw handle value.
+  // BOOL SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx,
+  //                   int cy, UINT uFlags) — 7 params.
   const SetWindowPos = user32.func('__stdcall', 'SetWindowPos', 'bool', [
-    'uintptr_t', 'uintptr_t', 'int', 'int', 'int', 'int', 'int', 'uint',
+    'uintptr_t', 'uintptr_t', 'int', 'int', 'int', 'int', 'uint',
   ])
   const GetWindowLongPtrW = user32.func('__stdcall', 'GetWindowLongPtrW', 'intptr_t', [
     'uintptr_t', 'int',

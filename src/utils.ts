@@ -21,6 +21,17 @@ export function relativeTime(ts: number): string {
   return `${d}d ago`
 }
 
+// "today" / "yesterday" / "3 days ago" / "12 Jan" — calendar-day granularity,
+// which reads better than "26h ago" for a "last done" label.
+export function relativeDay(ts: number): string {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((startOfDay(new Date()) - startOfDay(new Date(ts))) / 86_400_000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 export const REPEAT_LABELS: Record<string, string> = {
   once: 'Once',
   daily: 'Daily',
