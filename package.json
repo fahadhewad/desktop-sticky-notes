@@ -1,0 +1,55 @@
+{
+  "name": "desktop-sticky-notes",
+  "version": "0.1.0",
+  "description": "A minimalist desktop widget for Windows: sticky-note to-dos + a reminder schedule, pinned to your desktop.",
+  "author": "Fahad Hewad",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:vite\" \"npm:dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "build:renderer": "vite build",
+    "build": "npm run build:renderer && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "framer-motion": "^11.3.8",
+    "node-schedule": "^2.1.1",
+    "node-vibrant": "^3.1.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "electron-store": "^8.2.0",
+    "koffi": "^2.9.0",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "io.fahadhewad.stickynotes",
+    "productName": "Desktop Sticky Notes",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "directories": {
+      "output": "release"
+    }
+  }
+}
