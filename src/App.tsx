@@ -68,6 +68,23 @@ export default function App() {
     })
   }, [])
 
+  // ---- keyboard shortcuts: Ctrl/Cmd+N focuses quick-add, Esc hides to tray ----
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement as HTMLElement | null
+      const typing =
+        !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        document.querySelector<HTMLInputElement>('input[placeholder^="Write"]')?.focus()
+      } else if (e.key === 'Escape' && !typing) {
+        api.minimize()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const clearDue = useCallback((id: string) => {
     setDueIds((prev) => {
       if (!prev.has(id)) return prev

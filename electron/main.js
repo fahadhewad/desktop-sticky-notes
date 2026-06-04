@@ -1,5 +1,5 @@
 'use strict'
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, globalShortcut } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const { pinToDesktop } = require('./win32')
@@ -214,6 +214,10 @@ app.whenReady().then(() => {
   createTray()
   startScheduler()
   applyLoginItem(store.get('settings'))
+  // Global hotkey to summon / hide the widget from anywhere.
+  if (!globalShortcut.register('CommandOrControl+Shift+S', toggleWindow)) {
+    console.warn('[shortcut] could not register Ctrl+Shift+S')
+  }
   unwatch = watchWallpaper((theme) => {
     if (win) win.webContents.send('theme:changed', theme)
   })
@@ -222,6 +226,8 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('will-quit', () => globalShortcut.unregisterAll())
 
 app.on('window-all-closed', () => {
   unpin()
