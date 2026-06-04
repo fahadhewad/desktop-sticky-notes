@@ -10,14 +10,13 @@ interface Props {
 
 export default function TodoPanel({ todos, setTodos }: Props) {
   const [text, setText] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
 
   const add = () => {
     const t = text.trim()
     if (!t) return
-    setTodos((prev) => [
-      { id: uid(), text: t, done: false, createdAt: Date.now() },
-      ...prev,
-    ])
+    setTodos((prev) => [{ id: uid(), text: t, done: false, createdAt: Date.now() }, ...prev])
     setText('')
   }
 
@@ -32,13 +31,43 @@ export default function TodoPanel({ todos, setTodos }: Props) {
 
   const remove = (id: string) => setTodos((prev) => prev.filter((t) => t.id !== id))
 
+  const clearCompleted = () => setTodos((prev) => prev.filter((t) => !t.done))
+
+  const startEdit = (todo: Todo) => {
+    setEditingId(todo.id)
+    setEditText(todo.text)
+  }
+  const commitEdit = () => {
+    if (!editingId) return
+    const t = editText.trim()
+    setTodos((prev) => prev.map((todo) => (todo.id === editingId ? { ...todo, text: t || todo.text } : todo)))
+    setEditingId(null)
+  }
+  const cancelEdit = () => setEditingId(null)
+
   const remaining = todos.filter((t) => !t.done).length
+  const doneCount = todos.length - remaining
 
   return (
     <section className="flex min-w-0 flex-1 flex-col p-4">
       <header className="mb-3 flex items-baseline justify-between">
         <h2 className="text-sm font-semibold tracking-wide text-ink">To-do</h2>
-        <span className="text-xs text-ink-soft">{remaining} left</span>
+        <div className="flex items-baseline gap-2">
+          <AnimatePresence>
+            {doneCount > 0 && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={clearCompleted}
+                className="no-drag rounded-lg px-2 py-0.5 text-xs font-medium text-ink-soft transition-colors hover:bg-accent-soft hover:text-accent"
+              >
+                Clear done
+              </motion.button>
+            )}
+          </AnimatePresence>
+          <span className="text-xs text-ink-soft">{remaining} left</span>
+        </div>
       </header>
 
       <div className="no-drag mb-3 flex items-center gap-2 rounded-xl border border-line bg-glass-strong px-3 py-2">
@@ -85,20 +114,51 @@ export default function TodoPanel({ todos, setTodos }: Props) {
                 )}
               </button>
 
-              <div className="min-w-0 flex-1">
-                <span
-                  className={`block truncate text-sm transition-all duration-200 ${
-                    todo.done ? 'text-ink-soft line-through' : 'text-ink'
-                  }`}
+              {editingId === todo.id ? (
+                <input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitEdit()
+                    else if (e.key === 'Escape') cancelEdit()
+                  }}
+                  onBlur={commitEdit}
+                  autoFocus
+                  className="min-w-0 flex-1 border-b border-accent bg-transparent text-sm text-ink focus:outline-none"
+                />
+              ) : (
+                <div
+                  className="min-w-0 flex-1 cursor-text"
+                  onDoubleClick={() => startEdit(todo)}
+                  title="Double-click to edit"
                 >
-                  {todo.text}
-                </span>
-                <span className="text-[10px] text-ink-soft">
-                  {todo.done && todo.completedAt
-                    ? `done ${relativeTime(todo.completedAt)}`
-                    : `added ${relativeTime(todo.createdAt)}`}
-                </span>
-              </div>
+                  <span
+                    className={`block truncate text-sm transition-all duration-200 ${
+                      todo.done ? 'text-ink-soft line-through' : 'text-ink'
+                    }`}
+                  >
+                    {todo.text}
+                  </span>
+                  <span className="text-[10px] text-ink-soft">
+                    {todo.done && todo.completedAt
+                      ? `done ${relativeTime(todo.completedAt)}`
+                      : `added ${relativeTime(todo.createdAt)}`}
+                  </span>
+                </div>
+              )}
+
+              {editingId !== todo.id && (
+                <button
+                  onClick={() => startEdit(todo)}
+                  className="shrink-0 text-ink-soft opacity-0 transition-opacity duration-150 hover:text-accent group-hover:opacity-100"
+                  aria-label="Edit"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                  </svg>
+                </button>
+              )}
 
               <button
                 onClick={() => remove(todo.id)}

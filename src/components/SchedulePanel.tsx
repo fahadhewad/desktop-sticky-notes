@@ -24,6 +24,8 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   const [time, setTime] = useState('09:00')
   const [repeat, setRepeat] = useState<Repeat>('daily')
   const [adding, setAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
 
   const add = () => {
     const t = text.trim()
@@ -62,6 +64,18 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   // Opt a reminder in/out of firing at its learned "usual" time.
   const toggleAdaptive = (id: string) =>
     setSchedule((prev) => prev.map((s) => (s.id === id ? { ...s, adaptive: !s.adaptive } : s)))
+
+  const startEdit = (item: ScheduleItem) => {
+    setEditingId(item.id)
+    setEditText(item.text)
+  }
+  const commitEdit = () => {
+    if (!editingId) return
+    const t = editText.trim()
+    setSchedule((prev) => prev.map((s) => (s.id === editingId ? { ...s, text: t || s.text } : s)))
+    setEditingId(null)
+  }
+  const cancelEdit = () => setEditingId(null)
 
   return (
     <section className="flex min-w-0 flex-1 flex-col p-4">
@@ -150,8 +164,26 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-ink">{item.text}</span>
+                  <div
+                    className="min-w-0 flex-1"
+                    onDoubleClick={() => startEdit(item)}
+                    title="Double-click to edit"
+                  >
+                    {editingId === item.id ? (
+                      <input
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitEdit()
+                          else if (e.key === 'Escape') cancelEdit()
+                        }}
+                        onBlur={commitEdit}
+                        autoFocus
+                        className="w-full border-b border-accent bg-transparent text-sm text-ink focus:outline-none"
+                      />
+                    ) : (
+                      <span className="block truncate text-sm text-ink">{item.text}</span>
+                    )}
                     <span className="text-[10px] text-ink-soft">
                       {formatTime(item.time)} · {REPEAT_LABELS[item.repeat]}
                       {usual != null
