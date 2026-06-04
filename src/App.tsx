@@ -1,27 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { AppState, ScheduleItem, Settings, Todo } from './types'
+import type { AppState, Board, ScheduleItem, Settings, Todo } from './types'
 import { api, DEFAULT_SETTINGS } from './api'
 import { applyTheme, themeFromAccent } from './theme'
+import { uid } from './utils'
 import TopBar from './components/TopBar'
 import TodoPanel from './components/TodoPanel'
 import SchedulePanel from './components/SchedulePanel'
 import SettingsPanel from './components/SettingsPanel'
 
 export default function App() {
-  const [todos, setTodos] = useState<Todo[]>([])
+  const [boards, setBoards] = useState<Board[]>([])
   const [schedule, setSchedule] = useState<ScheduleItem[]>([])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [loaded, setLoaded] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [dueIds, setDueIds] = useState<Set<string>>(new Set())
 
-  // ---- initial load ----
+  // ---- initial load (migrating any pre-boards todos into a default board) ----
   useEffect(() => {
     let cancelled = false
     api.loadState().then((state: AppState) => {
       if (cancelled) return
-      setTodos(state.todos ?? [])
+      const loadedBoards = state.boards?.length
+        ? state.boards
+        : [{ id: uid(), name: 'Notes', todos: state.todos ?? [] }]
+      setBoards(loadedBoards)
       setSchedule(state.schedule ?? [])
       setSettings({ ...DEFAULT_SETTINGS, ...state.settings })
       setLoaded(true)
@@ -33,8 +37,8 @@ export default function App() {
 
   // ---- persist each slice when it changes (after the first load) ----
   useEffect(() => {
-    if (loaded) api.save('todos', todos)
-  }, [todos, loaded])
+    if (loaded) api.save('boards', boards)
+  }, [boards, loaded])
   useEffect(() => {
     if (loaded) api.save('schedule', schedule)
   }, [schedule, loaded])
@@ -109,6 +113,37 @@ export default function App() {
     }
   }, [loaded, settings.width, settings.height])
 
+  // ---- boards (multiple to-do lists) ----
+  const activeBoard = boards.find((b) => b.id === settings.activeBoardId) ?? boards[0]
+  const activeBoardId = activeBoard?.id ?? ''
+
+  const setActiveTodos: React.Dispatch<React.SetStateAction<Todo[]>> = (action) => {
+    setBoards((prev) =>
+      prev.map((b) =>
+        b.id === activeBoardId
+          ? {
+              ...b,
+              todos: typeof action === 'function' ? (action as (t: Todo[]) => Todo[])(b.todos) : action,
+            }
+          : b,
+      ),
+    )
+  }
+  const switchBoard = (id: string) => setSettings((s) => ({ ...s, activeBoardId: id }))
+  const addBoard = () => {
+    const board: Board = { id: uid(), name: `Board ${boards.length + 1}`, todos: [] }
+    setBoards((prev) => [...prev, board])
+    setSettings((s) => ({ ...s, activeBoardId: board.id }))
+  }
+  const renameBoard = (id: string, name: string) =>
+    setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, name } : b)))
+  const deleteBoard = (id: string) => {
+    if (boards.length <= 1) return
+    const fallback = boards.find((b) => b.id !== id)
+    setBoards((prev) => prev.filter((b) => b.id !== id))
+    if (activeBoardId === id && fallback) setSettings((s) => ({ ...s, activeBoardId: fallback.id }))
+  }
+
   return (
     <motion.div
       initial={{ scale: 0.98 }}
@@ -121,13 +156,19 @@ export default function App() {
       }}
     >
       <div className="flex h-full flex-col">
-        <TopBar
-          onOpenSettings={() => setShowSettings(true)}
-          settingsOpen={showSettings}
-        />
+        <TopBar onOpenSettings={() => setShowSettings(true)} settingsOpen={showSettings} />
 
         <div className="flex min-h-0 flex-1">
-          <TodoPanel todos={todos} setTodos={setTodos} />
+          <TodoPanel
+            todos={activeBoard?.todos ?? []}
+            setTodos={setActiveTodos}
+            boards={boards}
+            activeBoardId={activeBoardId}
+            onSwitchBoard={switchBoard}
+            onAddBoard={addBoard}
+            onRenameBoard={renameBoard}
+            onDeleteBoard={deleteBoard}
+          />
           <div className="w-px shrink-0 bg-line" />
           <SchedulePanel
             schedule={schedule}

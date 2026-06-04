@@ -1,17 +1,32 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion'
-import type { Todo } from '../types'
+import type { Board, Todo } from '../types'
 import { relativeTime, uid } from '../utils'
 
 interface Props {
   todos: Todo[]
   setTodos: React.Dispatch<React.SetStateAction<Todo[]>>
+  boards: Board[]
+  activeBoardId: string
+  onSwitchBoard: (id: string) => void
+  onAddBoard: () => void
+  onRenameBoard: (id: string, name: string) => void
+  onDeleteBoard: (id: string) => void
 }
 
 // Label palette (red / orange / yellow / green / blue / purple).
 const LABEL_COLORS = ['#f6736b', '#f6b06b', '#f3d44e', '#9ece6a', '#7aa2f7', '#bb9af7']
 
-export default function TodoPanel({ todos, setTodos }: Props) {
+export default function TodoPanel({
+  todos,
+  setTodos,
+  boards,
+  activeBoardId,
+  onSwitchBoard,
+  onAddBoard,
+  onRenameBoard,
+  onDeleteBoard,
+}: Props) {
   const [text, setText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
@@ -70,9 +85,16 @@ export default function TodoPanel({ todos, setTodos }: Props) {
 
   return (
     <section className="flex min-w-0 flex-1 flex-col p-4">
-      <header className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold tracking-wide text-ink">To-do</h2>
-        <div className="flex items-baseline gap-2">
+      <header className="mb-3 flex items-center justify-between gap-2">
+        <BoardTabs
+          boards={boards}
+          activeBoardId={activeBoardId}
+          onSwitch={onSwitchBoard}
+          onAdd={onAddBoard}
+          onRename={onRenameBoard}
+          onDelete={onDeleteBoard}
+        />
+        <div className="flex shrink-0 items-baseline gap-2">
           <AnimatePresence>
             {doneCount > 0 && (
               <motion.button
@@ -362,5 +384,90 @@ function TodoRow({
         </svg>
       </button>
     </Reorder.Item>
+  )
+}
+
+interface BoardTabsProps {
+  boards: Board[]
+  activeBoardId: string
+  onSwitch: (id: string) => void
+  onAdd: () => void
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string) => void
+}
+
+function BoardTabs({ boards, activeBoardId, onSwitch, onAdd, onRename, onDelete }: BoardTabsProps) {
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [name, setName] = useState('')
+
+  const startRename = (b: Board) => {
+    setRenamingId(b.id)
+    setName(b.name)
+  }
+  const commitRename = () => {
+    if (renamingId) onRename(renamingId, name.trim() || 'Board')
+    setRenamingId(null)
+  }
+
+  return (
+    <div className="no-drag flex min-w-0 items-center gap-1 overflow-x-auto">
+      {boards.map((b) => {
+        const active = b.id === activeBoardId
+        if (renamingId === b.id) {
+          return (
+            <input
+              key={b.id}
+              value={name}
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename()
+                else if (e.key === 'Escape') setRenamingId(null)
+              }}
+              onBlur={commitRename}
+              className="w-24 shrink-0 rounded-md border border-accent bg-transparent px-2 py-0.5 text-xs text-ink focus:outline-none"
+            />
+          )
+        }
+        return (
+          <button
+            key={b.id}
+            onClick={() => onSwitch(b.id)}
+            onDoubleClick={() => startRename(b)}
+            title="Double-click to rename"
+            className="flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold transition-colors"
+            style={{
+              backgroundColor: active ? 'var(--accent-soft)' : 'transparent',
+              color: active ? 'var(--accent)' : 'var(--ink-soft)',
+            }}
+          >
+            <span className="max-w-[8rem] truncate">{b.name}</span>
+            {active && boards.length > 1 && (
+              <span
+                role="button"
+                tabIndex={-1}
+                aria-label="Delete board"
+                title="Delete board"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(b.id)
+                }}
+                className="text-sm leading-none opacity-50 transition-opacity hover:opacity-100"
+              >
+                ×
+              </span>
+            )}
+          </button>
+        )
+      })}
+      <button
+        onClick={onAdd}
+        aria-label="New board"
+        title="New board"
+        className="shrink-0 rounded-md px-1.5 py-0.5 text-sm leading-none text-ink-soft transition-colors hover:bg-accent-soft hover:text-accent"
+      >
+        +
+      </button>
+    </div>
   )
 }

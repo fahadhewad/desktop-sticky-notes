@@ -10,6 +10,12 @@ export interface Todo {
   color?: string // optional label colour (hex)
 }
 
+export interface Board {
+  id: string
+  name: string
+  todos: Todo[]
+}
+
 export type Repeat = 'once' | 'daily' | 'weekdays' | 'weekly'
 
 export interface CompletionRecord {
@@ -47,11 +53,13 @@ export interface Settings {
   sizeProfiles: SizeProfile[]
   opacity?: number // overall widget opacity (0.6–1)
   launchAtStartup?: boolean
+  activeBoardId?: string // id of the board shown in the To-do panel
   position?: { x: number; y: number }
 }
 
 export interface AppState {
-  todos: Todo[]
+  boards?: Board[]
+  todos?: Todo[] // legacy (pre-boards); migrated into a default board on load
   schedule: ScheduleItem[]
   settings: Settings
 }

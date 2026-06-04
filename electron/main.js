@@ -173,11 +173,15 @@ function applyLoginItem(settings) {
 }
 
 // --- IPC ---
-ipcMain.handle('state:load', () => ({
-  todos: store.get('todos'),
-  schedule: store.get('schedule'),
-  settings: store.get('settings'),
-}))
+ipcMain.handle('state:load', () => {
+  // Migrate pre-boards data (a flat `todos` list) into a default board.
+  let boards = store.get('boards')
+  if (!boards) {
+    boards = [{ id: 'default', name: 'Notes', todos: store.get('todos') || [] }]
+    store.set('boards', boards)
+  }
+  return { boards, schedule: store.get('schedule'), settings: store.get('settings') }
+})
 
 ipcMain.handle('state:save', (_e, key, value) => {
   store.set(key, value)
