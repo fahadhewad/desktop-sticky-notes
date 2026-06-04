@@ -173,6 +173,10 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
             ))}
           </div>
         )}
+
+        <div className="mt-auto pt-5 text-center text-[10px] text-ink-soft">
+          Desktop Sticky Notes · v{__APP_VERSION__}
+        </div>
       </motion.div>
     </motion.div>
   )
