@@ -19,29 +19,26 @@ interface Props {
 
 const REPEATS: Repeat[] = ['daily', 'weekdays', 'weekly', 'once']
 
+const byTime = (a: ScheduleItem, b: ScheduleItem) => a.time.localeCompare(b.time)
+
 export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue }: Props) {
   const [text, setText] = useState('')
   const [time, setTime] = useState('09:00')
   const [repeat, setRepeat] = useState<Repeat>('daily')
   const [adding, setAdding] = useState(false)
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [editTime, setEditTime] = useState('09:00')
+  const [editRepeat, setEditRepeat] = useState<Repeat>('daily')
 
   const add = () => {
     const t = text.trim()
     if (!t) return
     setSchedule((prev) =>
-      [
-        {
-          id: uid(),
-          text: t,
-          time,
-          repeat,
-          createdAt: Date.now(),
-          completionHistory: [],
-        },
-        ...prev,
-      ].sort((a, b) => a.time.localeCompare(b.time)),
+      [{ id: uid(), text: t, time, repeat, createdAt: Date.now(), completionHistory: [] }, ...prev].sort(
+        byTime,
+      ),
     )
     setText('')
     setAdding(false)
@@ -68,11 +65,19 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
   const startEdit = (item: ScheduleItem) => {
     setEditingId(item.id)
     setEditText(item.text)
+    setEditTime(item.time)
+    setEditRepeat(item.repeat)
   }
   const commitEdit = () => {
     if (!editingId) return
     const t = editText.trim()
-    setSchedule((prev) => prev.map((s) => (s.id === editingId ? { ...s, text: t || s.text } : s)))
+    setSchedule((prev) =>
+      prev
+        .map((s) =>
+          s.id === editingId ? { ...s, text: t || s.text, time: editTime, repeat: editRepeat } : s,
+        )
+        .sort(byTime),
+    )
     setEditingId(null)
   }
   const cancelEdit = () => setEditingId(null)
@@ -106,7 +111,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                 autoFocus
                 className="w-full bg-transparent text-sm text-ink placeholder:text-ink-soft focus:outline-none"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   type="time"
                   value={time}
@@ -140,6 +145,7 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
         <AnimatePresence initial={false}>
           {schedule.map((item) => {
             const due = dueIds.has(item.id)
+            const editing = editingId === item.id
             const lastDone = item.completionHistory.at(-1)?.completedAt
             const usual = usualCompletionMinutes(item.completionHistory)
             return (
@@ -150,86 +156,119 @@ export default function SchedulePanel({ schedule, setSchedule, dueIds, clearDue 
                 animate={{
                   opacity: 1,
                   y: 0,
-                  scale: due ? [1, 1.015, 1] : 1,
+                  scale: due && !editing ? [1, 1.015, 1] : 1,
                 }}
                 exit={{ opacity: 0, x: 24, transition: { duration: 0.18 } }}
                 transition={{
-                  scale: due ? { repeat: Infinity, duration: 1.8 } : { duration: 0.2 },
+                  scale: due && !editing ? { repeat: Infinity, duration: 1.8 } : { duration: 0.2 },
                   default: { type: 'spring', stiffness: 420, damping: 32 },
                 }}
                 className="no-drag group mb-1.5 rounded-xl border px-3 py-2 transition-colors"
                 style={{
-                  borderColor: due ? 'var(--accent)' : 'var(--line)',
-                  backgroundColor: due ? 'var(--accent-soft)' : 'transparent',
+                  borderColor: due && !editing ? 'var(--accent)' : 'var(--line)',
+                  backgroundColor: due && !editing ? 'var(--accent-soft)' : 'transparent',
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="min-w-0 flex-1"
-                    onDoubleClick={() => startEdit(item)}
-                    title="Double-click to edit"
-                  >
-                    {editingId === item.id ? (
-                      <input
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitEdit()
-                          else if (e.key === 'Escape') cancelEdit()
-                        }}
-                        onBlur={commitEdit}
-                        autoFocus
-                        className="w-full border-b border-accent bg-transparent text-sm text-ink focus:outline-none"
-                      />
-                    ) : (
-                      <span className="block truncate text-sm text-ink">{item.text}</span>
-                    )}
-                    <span className="text-[10px] text-ink-soft">
-                      {formatTime(item.time)} · {REPEAT_LABELS[item.repeat]}
-                      {usual != null
-                        ? ` · ${item.adaptive ? 'adapts to' : 'usually'} ~${minutesToTimeLabel(usual)}`
-                        : ''}
-                      {lastDone ? ` · last done ${relativeDay(lastDone)}` : ''}
-                    </span>
-                  </div>
-                  {usual != null && (
-                    <button
-                      onClick={() => toggleAdaptive(item.id)}
-                      title={
-                        item.adaptive
-                          ? `Adapting to your usual time (~${minutesToTimeLabel(usual)})`
-                          : 'Adapt to my usual time'
-                      }
-                      aria-label="Toggle adaptive timing"
-                      aria-pressed={item.adaptive ?? false}
-                      className="shrink-0 rounded-lg border px-1.5 py-1 transition-colors"
-                      style={{
-                        borderColor: item.adaptive ? 'var(--accent)' : 'var(--line)',
-                        backgroundColor: item.adaptive ? 'var(--accent-soft)' : 'transparent',
-                        color: item.adaptive ? 'var(--accent)' : 'var(--ink-soft)',
+                {editing ? (
+                  <div className="space-y-2">
+                    <input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitEdit()
+                        else if (e.key === 'Escape') cancelEdit()
                       }}
+                      autoFocus
+                      className="w-full border-b border-accent bg-transparent text-sm text-ink focus:outline-none"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && cancelEdit()}
+                        className="rounded-lg border border-line bg-transparent px-2 py-1 text-xs text-ink focus:outline-none"
+                      />
+                      <select
+                        value={editRepeat}
+                        onChange={(e) => setEditRepeat(e.target.value as Repeat)}
+                        className="rounded-lg border border-line bg-transparent px-2 py-1 text-xs text-ink focus:outline-none [&>option]:text-black"
+                      >
+                        {REPEATS.map((r) => (
+                          <option key={r} value={r}>
+                            {REPEAT_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={commitEdit}
+                        className="ml-auto rounded-lg bg-accent-soft px-3 py-1 text-xs font-medium text-accent transition-transform hover:scale-105 active:scale-95"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="rounded-lg px-2 py-1 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="min-w-0 flex-1 cursor-text"
+                      onDoubleClick={() => startEdit(item)}
+                      title="Double-click to edit"
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C12 7 7 12 2 12C7 12 12 17 12 22C12 17 17 12 22 12C17 12 12 7 12 2Z" />
+                      <span className="block truncate text-sm text-ink">{item.text}</span>
+                      <span className="text-[10px] text-ink-soft">
+                        {formatTime(item.time)} · {REPEAT_LABELS[item.repeat]}
+                        {usual != null
+                          ? ` · ${item.adaptive ? 'adapts to' : 'usually'} ~${minutesToTimeLabel(usual)}`
+                          : ''}
+                        {lastDone ? ` · last done ${relativeDay(lastDone)}` : ''}
+                      </span>
+                    </div>
+                    {usual != null && (
+                      <button
+                        onClick={() => toggleAdaptive(item.id)}
+                        title={
+                          item.adaptive
+                            ? `Adapting to your usual time (~${minutesToTimeLabel(usual)})`
+                            : 'Adapt to my usual time'
+                        }
+                        aria-label="Toggle adaptive timing"
+                        aria-pressed={item.adaptive ?? false}
+                        className="shrink-0 rounded-lg border px-1.5 py-1 transition-colors"
+                        style={{
+                          borderColor: item.adaptive ? 'var(--accent)' : 'var(--line)',
+                          backgroundColor: item.adaptive ? 'var(--accent-soft)' : 'transparent',
+                          color: item.adaptive ? 'var(--accent)' : 'var(--ink-soft)',
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C12 7 7 12 2 12C7 12 12 17 12 22C12 17 17 12 22 12C17 12 12 7 12 2Z" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => markDone(item.id)}
+                      className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
+                    >
+                      Done
+                    </button>
+                    <button
+                      onClick={() => remove(item.id)}
+                      className="shrink-0 text-ink-soft opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
+                      aria-label="Delete"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
-                  )}
-                  <button
-                    onClick={() => markDone(item.id)}
-                    className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent"
-                  >
-                    Done
-                  </button>
-                  <button
-                    onClick={() => remove(item.id)}
-                    className="shrink-0 text-ink-soft opacity-0 transition-opacity hover:text-accent group-hover:opacity-100"
-                    aria-label="Delete"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+                  </div>
+                )}
               </motion.div>
             )
           })}
