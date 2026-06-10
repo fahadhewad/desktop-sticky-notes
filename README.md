@@ -20,6 +20,10 @@ and a glass UI that can match your wallpaper's colours.
 - **Smart reminders** — every completion is logged, and each reminder learns
   your *usual* completion time. Flip on **adapt** (the sparkle) and it fires at
   your real usual time instead of the set one.
+- **Daily Spanish** — learn one new verb a day from a bundled list of the 120
+  most common Spanish verbs (present-tense conjugations + an example with a
+  literal translation), then **practice** by translating or conjugating
+  everything you've learned. Fully offline — no API.
 - **Desktop-pinned** — frameless, transparent, bottom-of-the-z-order window that
   stays on your desktop without covering other apps (Windows, via `user32`).
 - **System tray** — tuck the widget away to the tray and bring it back any time;
