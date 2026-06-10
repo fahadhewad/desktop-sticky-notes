@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { AppState, Board, ScheduleItem, Settings, Todo } from './types'
+import type { AppState, Board, ScheduleItem, Settings, SpanishProgress, Todo } from './types'
 import { api, DEFAULT_SETTINGS } from './api'
 import { applyTheme, themeFromAccent } from './theme'
 import { uid } from './utils'
@@ -8,6 +8,8 @@ import TopBar from './components/TopBar'
 import TodoPanel from './components/TodoPanel'
 import SchedulePanel from './components/SchedulePanel'
 import SettingsPanel from './components/SettingsPanel'
+import SpanishPanel from './components/SpanishPanel'
+import { VERBS } from './data/verbs'
 
 export default function App() {
   const [boards, setBoards] = useState<Board[]>([])
@@ -16,6 +18,8 @@ export default function App() {
   const [loaded, setLoaded] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [dueIds, setDueIds] = useState<Set<string>>(new Set())
+  const [showSpanish, setShowSpanish] = useState(false)
+  const [spanish, setSpanish] = useState<SpanishProgress>({ learnedCount: 0, lastLearnedDate: '' })
 
   // ---- initial load (migrating any pre-boards todos into a default board) ----
   useEffect(() => {
@@ -28,6 +32,7 @@ export default function App() {
       setBoards(loadedBoards)
       setSchedule(state.schedule ?? [])
       setSettings({ ...DEFAULT_SETTINGS, ...state.settings })
+      setSpanish(state.spanish ?? { learnedCount: 0, lastLearnedDate: '' })
       setLoaded(true)
     })
     return () => {
@@ -45,6 +50,19 @@ export default function App() {
   useEffect(() => {
     if (loaded) api.save('settings', settings)
   }, [settings, loaded])
+  useEffect(() => {
+    if (loaded) api.save('spanish', spanish)
+  }, [spanish, loaded])
+
+  // ---- reveal a new Spanish verb each calendar day ----
+  useEffect(() => {
+    if (!loaded) return
+    const d = new Date()
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    if (spanish.lastLearnedDate !== today && spanish.learnedCount < VERBS.length) {
+      setSpanish((s) => ({ learnedCount: s.learnedCount + 1, lastLearnedDate: today }))
+    }
+  }, [loaded, spanish.lastLearnedDate, spanish.learnedCount])
 
   // ---- theming: wallpaper-matched or manual accent ----
   useEffect(() => {
@@ -156,7 +174,11 @@ export default function App() {
       }}
     >
       <div className="flex h-full flex-col">
-        <TopBar onOpenSettings={() => setShowSettings(true)} settingsOpen={showSettings} />
+        <TopBar
+          onOpenSettings={() => setShowSettings(true)}
+          settingsOpen={showSettings}
+          onOpenSpanish={() => setShowSpanish(true)}
+        />
 
         <div className="flex min-h-0 flex-1">
           <TodoPanel
@@ -187,6 +209,12 @@ export default function App() {
             applySize={applySize}
             onClose={() => setShowSettings(false)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSpanish && (
+          <SpanishPanel learnedCount={spanish.learnedCount} onClose={() => setShowSpanish(false)} />
         )}
       </AnimatePresence>
     </motion.div>

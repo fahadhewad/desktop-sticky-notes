@@ -57,11 +57,17 @@ export interface Settings {
   position?: { x: number; y: number }
 }
 
+export interface SpanishProgress {
+  learnedCount: number // how many verbs have been revealed so far (0..120)
+  lastLearnedDate: string // YYYY-MM-DD of the most recent reveal
+}
+
 export interface AppState {
   boards?: Board[]
   todos?: Todo[] // legacy (pre-boards); migrated into a default board on load
   schedule: ScheduleItem[]
   settings: Settings
+  spanish?: SpanishProgress
 }
 
 export interface Theme {

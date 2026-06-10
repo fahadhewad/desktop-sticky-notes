@@ -11,6 +11,7 @@ const isDev = process.env.NODE_ENV === 'development'
 const defaults = {
   todos: [],
   schedule: [],
+  spanish: { learnedCount: 0, lastLearnedDate: '' },
   settings: {
     width: 720,
     height: 460,
@@ -180,7 +181,12 @@ ipcMain.handle('state:load', () => {
     boards = [{ id: 'default', name: 'Notes', todos: store.get('todos') || [] }]
     store.set('boards', boards)
   }
-  return { boards, schedule: store.get('schedule'), settings: store.get('settings') }
+  return {
+    boards,
+    schedule: store.get('schedule'),
+    settings: store.get('settings'),
+    spanish: store.get('spanish'),
+  }
 })
 
 ipcMain.handle('state:save', (_e, key, value) => {

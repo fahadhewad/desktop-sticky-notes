@@ -4,7 +4,7 @@ import type { AppState, Settings, Theme } from './types'
 // renderer and preload stay in sync.
 export interface StickyApi {
   loadState(): Promise<AppState>
-  save(key: 'boards' | 'schedule' | 'settings', value: unknown): Promise<void>
+  save(key: 'boards' | 'schedule' | 'settings' | 'spanish', value: unknown): Promise<void>
   resizeWindow(width: number, height: number): void
   onWindowResized(cb: (size: { width: number; height: number }) => void): () => void
   minimize(): void
