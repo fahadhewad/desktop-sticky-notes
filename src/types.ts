@@ -8,6 +8,7 @@ export interface Todo {
   createdAt: number // epoch ms
   completedAt?: number // epoch ms, set when checked off
   color?: string // optional label colour (hex)
+  due?: number // optional deadline, epoch ms
 }
 
 export interface Board {
@@ -45,6 +46,22 @@ export interface SizeProfile {
   height: number
 }
 
+// Where the widget sits on screen: 'free' (drag anywhere) or stuck to one of
+// nine spots on the current display, e.g. 'top-right'.
+export type Anchor =
+  | 'free'
+  | `${'top' | 'middle' | 'bottom'}-${'left' | 'center' | 'right'}`
+
+// Global shortcuts as Electron accelerators (e.g. "CommandOrControl+Alt+N").
+// An empty string turns that shortcut off.
+export interface Shortcuts {
+  quickAdd: string // pop up the quick-add box
+  toggle: string // show / hide the widget
+}
+
+export type ShortcutState = 'ok' | 'failed' | 'off'
+export type ShortcutStatus = Partial<Record<keyof Shortcuts, ShortcutState>>
+
 export interface Settings {
   width: number
   height: number
@@ -55,6 +72,8 @@ export interface Settings {
   launchAtStartup?: boolean
   activeBoardId?: string // id of the board shown in the To-do panel
   position?: { x: number; y: number }
+  anchor?: Anchor
+  shortcuts?: Shortcuts
 }
 
 export interface SpanishProgress {
@@ -68,6 +87,12 @@ export interface AppState {
   schedule: ScheduleItem[]
   settings: Settings
   spanish?: SpanishProgress
+}
+
+// What the quick-add box hands to the widget.
+export interface QuickTodo {
+  text: string
+  due?: number
 }
 
 export interface Theme {

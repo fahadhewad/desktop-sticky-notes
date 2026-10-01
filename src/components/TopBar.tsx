@@ -5,14 +5,15 @@ interface Props {
   onOpenSettings: () => void
   settingsOpen: boolean
   onOpenSpanish: () => void
+  locked: boolean // stuck to a screen position, so not draggable
 }
 
 // A thin draggable strip. A subtle clock sits in the middle; the window controls
 // and settings gear stay invisible until the strip is hovered, keeping the
 // widget clean and chrome-free.
-export default function TopBar({ onOpenSettings, settingsOpen, onOpenSpanish }: Props) {
+export default function TopBar({ onOpenSettings, settingsOpen, onOpenSpanish, locked }: Props) {
   return (
-    <div className="drag group relative flex h-9 shrink-0 items-center px-3">
+    <div className={`${locked ? '' : 'drag '}group relative flex h-9 shrink-0 items-center px-3`}>
       {/* Hover-revealed window controls (left) */}
       <div className="no-drag flex items-center gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <Dot color="#ff5f57" label="Close" onClick={() => api.close()} />

@@ -12,7 +12,14 @@ and a glass UI that can match your wallpaper's colours.
 
 - **To-dos** — multiple **boards** you switch between; quick capture, check off,
   inline-edit (double-click), drag to reorder, **colour labels** with filtering,
-  and *Clear done*.
+  and *Clear done*. Give any to-do a **deadline** in plain words (“tomorrow
+  5pm”, “fri”, “in 2 hours”, “25 dec”); it's highlighted when it's close,
+  turns red when it's overdue, and fires a notification when it's due.
+- **Quick add from anywhere** — a global shortcut (**Ctrl+Alt+N** by default)
+  pops a small box up over whatever you're doing, even though the widget itself
+  sits behind your windows. Type the note, **Enter**, type a deadline (or
+  nothing), **Enter**, and it lands on your current board. Esc goes back or
+  cancels; Ctrl+Enter saves straight away without a deadline.
 - **Schedule** — time-based recurring reminders (once / daily / weekdays /
   weekly), fully editable inline, with a per-reminder **sound** toggle. When one
   is due it highlights on the widget **and** fires a native Windows notification
@@ -26,12 +33,18 @@ and a glass UI that can match your wallpaper's colours.
   everything you've learned. Fully offline — no API.
 - **Desktop-pinned** — frameless, transparent, bottom-of-the-z-order window that
   stays on your desktop without covering other apps (Windows, via `user32`).
+- **Stick it anywhere** — in Settings → Position, stick the widget to any corner
+  or edge (top right, top left, bottom centre, centre…) of the screen it's on,
+  and it stays there through resizes and display changes. Or leave it *Free*
+  and drag it wherever you like.
 - **System tray** — tuck the widget away to the tray and bring it back any time;
   quit from the tray menu.
 - **Yours to tune** — adjustable widget **opacity** and an optional **launch at
   startup** so it's there every time you log in.
-- **Keyboard shortcuts** — a global hotkey (Ctrl+Shift+S) to show/hide from
-  anywhere, Ctrl+N to jump to quick-add, Esc to tuck away.
+- **Keyboard shortcuts** — global shortcuts you can change in Settings →
+  Shortcuts (click, press a new combo): quick add (Ctrl+Alt+N) and show/hide
+  (Ctrl+Shift+S). In the widget, Ctrl+N jumps to the add box and Esc tucks it
+  away.
 - **Wallpaper-matched theme** — derives the glass tint and accent from your
   current wallpaper and re-themes when you change it. Or turn it off and pick a
   manual accent.

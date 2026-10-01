@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion'
 import type { Board, Todo } from '../types'
 import { relativeTime, uid } from '../utils'
+import { capitalize, formatDue, parseDeadline } from '../deadline'
 
 interface Props {
   todos: Todo[]
@@ -16,6 +17,17 @@ interface Props {
 
 // Label palette (red / orange / yellow / green / blue / purple).
 const LABEL_COLORS = ['#f6736b', '#f6b06b', '#f3d44e', '#9ece6a', '#7aa2f7', '#bb9af7']
+const OVERDUE = '#f6736b'
+
+// Re-render every so often so "due in…" / overdue states stay current.
+function useNow(intervalMs: number) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return now
+}
 
 export default function TodoPanel({
   todos,
@@ -31,6 +43,7 @@ export default function TodoPanel({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [filterColor, setFilterColor] = useState<string | null>(null)
+  const now = useNow(30_000)
 
   const add = () => {
     const t = text.trim()
@@ -54,6 +67,9 @@ export default function TodoPanel({
 
   const setColor = (id: string, color?: string) =>
     setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, color } : t)))
+
+  const setDue = (id: string, due?: number) =>
+    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, due } : t)))
 
   const startEdit = (todo: Todo) => {
     setEditingId(todo.id)
@@ -158,6 +174,7 @@ export default function TodoPanel({
               <TodoRow
                 key={todo.id}
                 todo={todo}
+                now={now}
                 editing={editingId === todo.id}
                 editText={editText}
                 setEditText={setEditText}
@@ -167,6 +184,7 @@ export default function TodoPanel({
                 onCommitEdit={commitEdit}
                 onCancelEdit={cancelEdit}
                 onSetColor={(c) => setColor(todo.id, c)}
+                onSetDue={(due) => setDue(todo.id, due)}
               />
             ))}
           </AnimatePresence>
@@ -198,6 +216,7 @@ export default function TodoPanel({
 
 interface RowProps {
   todo: Todo
+  now: number
   editing: boolean
   editText: string
   setEditText: (v: string) => void
@@ -207,10 +226,12 @@ interface RowProps {
   onCommitEdit: () => void
   onCancelEdit: () => void
   onSetColor: (color?: string) => void
+  onSetDue: (due?: number) => void
 }
 
 function TodoRow({
   todo,
+  now,
   editing,
   editText,
   setEditText,
@@ -220,9 +241,14 @@ function TodoRow({
   onCommitEdit,
   onCancelEdit,
   onSetColor,
+  onSetDue,
 }: RowProps) {
   const controls = useDragControls()
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [menu, setMenu] = useState<'color' | 'deadline' | null>(null)
+  const toggleMenu = (m: 'color' | 'deadline') => setMenu((cur) => (cur === m ? null : m))
+  const showDue = !todo.done && typeof todo.due === 'number'
+  const overdue = showDue && todo.due! <= now
+  const dueSoon = showDue && !overdue && todo.due! - now < 3_600_000
   return (
     <Reorder.Item
       value={todo}
@@ -233,7 +259,7 @@ function TodoRow({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.18 } }}
       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-      className="no-drag group relative mb-1.5 flex items-center gap-2 rounded-xl px-1.5 py-2 hover:bg-glass-strong"
+      className="no-drag group relative mb-1.5 flex flex-wrap items-center gap-2 rounded-xl px-1.5 py-2 hover:bg-glass-strong"
     >
       {todo.color && (
         <span
@@ -306,18 +332,46 @@ function TodoRow({
           >
             {todo.text}
           </span>
-          <span className="text-[10px] text-ink-soft">
-            {todo.done && todo.completedAt
-              ? `done ${relativeTime(todo.completedAt)}`
-              : `added ${relativeTime(todo.createdAt)}`}
-          </span>
+          {/* An open deadline matters more than when the to-do was added. */}
+          {showDue ? (
+            <button
+              onClick={() => toggleMenu('deadline')}
+              title="Change deadline"
+              className="block max-w-full truncate text-[10px] font-medium leading-5 hover:underline"
+              style={{ color: overdue ? OVERDUE : dueSoon ? 'var(--accent)' : 'var(--ink-soft)' }}
+            >
+              {overdue ? 'overdue · ' : 'due '}
+              {formatDue(todo.due!, new Date(now))}
+            </button>
+          ) : (
+            <span className="text-[10px] text-ink-soft">
+              {todo.done && todo.completedAt
+                ? `done ${relativeTime(todo.completedAt)}`
+                : `added ${relativeTime(todo.createdAt)}`}
+            </span>
+          )}
         </div>
+      )}
+
+      {!editing && !todo.done && (
+        <button
+          onClick={() => toggleMenu('deadline')}
+          className="shrink-0 opacity-0 transition-opacity duration-150 hover:text-accent group-hover:opacity-100"
+          style={{ color: showDue ? 'var(--accent)' : 'var(--ink-soft)' }}
+          aria-label="Deadline"
+          title="Deadline"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="13" r="8" />
+            <path d="M12 9v4l2.5 2" />
+          </svg>
+        </button>
       )}
 
       {!editing && (
         <div className="relative shrink-0">
           <button
-            onClick={() => setPickerOpen((o) => !o)}
+            onClick={() => toggleMenu('color')}
             className="flex items-center text-ink-soft opacity-0 transition-opacity duration-150 hover:text-accent group-hover:opacity-100"
             aria-label="Label colour"
             title="Label colour"
@@ -330,14 +384,14 @@ function TodoRow({
               }}
             />
           </button>
-          {pickerOpen && (
+          {menu === 'color' && (
             <div className="absolute right-0 z-20 mt-1 flex items-center gap-1 rounded-lg border border-line bg-glass-strong p-1.5 shadow-card backdrop-blur-2xl">
               {LABEL_COLORS.map((c) => (
                 <button
                   key={c}
                   onClick={() => {
                     onSetColor(c)
-                    setPickerOpen(false)
+                    setMenu(null)
                   }}
                   className="h-4 w-4 rounded-full border-2 transition-transform hover:scale-110"
                   style={{ backgroundColor: c, borderColor: todo.color === c ? 'var(--ink)' : 'transparent' }}
@@ -347,7 +401,7 @@ function TodoRow({
               <button
                 onClick={() => {
                   onSetColor(undefined)
-                  setPickerOpen(false)
+                  setMenu(null)
                 }}
                 className="flex h-4 w-4 items-center justify-center rounded-full border border-line text-ink-soft transition-colors hover:text-accent"
                 aria-label="No label"
@@ -383,7 +437,75 @@ function TodoRow({
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
+
+      {!editing && menu === 'deadline' && (
+        <DeadlineEditor
+          due={todo.due}
+          onSet={(due) => {
+            onSetDue(due)
+            setMenu(null)
+          }}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </Reorder.Item>
+  )
+}
+
+// Inline editor (wraps under the row) for setting a deadline in plain words.
+function DeadlineEditor({
+  due,
+  onSet,
+  onClose,
+}: {
+  due?: number
+  onSet: (due?: number) => void
+  onClose: () => void
+}) {
+  const [value, setValue] = useState('')
+  const parsed = parseDeadline(value)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => ref.current?.scrollIntoView({ block: 'nearest' }), [])
+  const commit = () => {
+    if (!value.trim()) onClose()
+    else if (parsed.ok) onSet(parsed.due)
+  }
+  return (
+    <div ref={ref} className="basis-full pl-9 pr-1">
+      <input
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          else if (e.key === 'Escape') onClose()
+        }}
+        placeholder="tomorrow 5pm, fri, in 2 hours…"
+        aria-label="Deadline"
+        className="w-full rounded-md border border-line bg-transparent px-2 py-1 text-xs text-ink placeholder:text-ink-soft focus:border-accent focus:outline-none"
+      />
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px]">
+        <span className="min-w-0 truncate" style={{ color: !parsed.ok ? OVERDUE : 'var(--ink-soft)' }}>
+          {!value.trim()
+            ? due
+              ? `Due ${formatDue(due)}`
+              : 'Type a deadline, then Enter'
+            : !parsed.ok
+              ? 'Not sure when that is'
+              : parsed.due
+                ? `→ ${capitalize(formatDue(parsed.due))}`
+                : 'No deadline'}
+        </span>
+        {due !== undefined && (
+          <button
+            onClick={() => onSet(undefined)}
+            className="shrink-0 text-ink-soft transition-colors hover:text-accent"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import type { Settings, SizeProfile } from '../types'
+import type { Anchor, Settings, ShortcutState, ShortcutStatus, Shortcuts, SizeProfile } from '../types'
+import { api } from '../api'
 import { uid } from '../utils'
+import { acceleratorFromEvent, DEFAULT_SHORTCUTS, formatAccelerator } from '../shortcuts'
 
 interface Props {
   settings: Settings
@@ -11,6 +13,35 @@ interface Props {
 }
 
 const ACCENTS = ['#f6b06b', '#7aa2f7', '#9ece6a', '#e06c9f', '#bb9af7', '#f7768e']
+
+const ANCHORS: Exclude<Anchor, 'free'>[] = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'middle-left',
+  'middle-center',
+  'middle-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+]
+// Line each mini-widget up with the edge it stands for.
+const JUSTIFY = { left: 'justify-start', center: 'justify-center', right: 'justify-end' }
+const ALIGN = { top: 'items-start', middle: 'items-center', bottom: 'items-end' }
+
+const anchorLabel = (a: Anchor) =>
+  a === 'middle-center'
+    ? 'Centre'
+    : a
+        .replace('middle-', 'middle ')
+        .replace('-center', ' centre')
+        .replace('-', ' ')
+        .replace(/^./, (c) => c.toUpperCase())
+
+const SHORTCUT_ROWS: { key: keyof Shortcuts; label: string; hint: string }[] = [
+  { key: 'quickAdd', label: 'Quick add', hint: 'Pop up a box to jot a note from anywhere' },
+  { key: 'toggle', label: 'Show / hide widget', hint: 'Tuck the widget away or bring it back' },
+]
 
 export default function SettingsPanel({ settings, setSettings, applySize, onClose }: Props) {
   const [profileName, setProfileName] = useState('')
@@ -29,6 +60,18 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
 
   const deleteProfile = (id: string) =>
     setSettings((s) => ({ ...s, sizeProfiles: s.sizeProfiles.filter((p) => p.id !== id) }))
+
+  const anchor = settings.anchor ?? 'free'
+  const setAnchor = (a: Anchor) => setSettings((s) => ({ ...s, anchor: a }))
+
+  const shortcuts = { ...DEFAULT_SHORTCUTS, ...settings.shortcuts }
+  const setShortcut = (key: keyof Shortcuts, accelerator: string) =>
+    setSettings((s) => ({ ...s, shortcuts: { ...DEFAULT_SHORTCUTS, ...s.shortcuts, [key]: accelerator } }))
+  const [shortcutStatus, setShortcutStatus] = useState<ShortcutStatus>({})
+  useEffect(() => {
+    api.getShortcutStatus().then(setShortcutStatus)
+    return api.onShortcutStatus(setShortcutStatus)
+  }, [])
 
   return (
     <motion.div
@@ -137,6 +180,49 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
           ))}
         </div>
 
+        {/* ---- Position ---- */}
+        <Label>Position</Label>
+        <div className="mb-2 grid aspect-[16/10] w-full grid-cols-3 grid-rows-3 gap-1 rounded-lg border border-line bg-glass p-1.5">
+          {ANCHORS.map((a) => {
+            const [v, h] = a.split('-') as [keyof typeof ALIGN, keyof typeof JUSTIFY]
+            const active = anchor === a
+            return (
+              <button
+                key={a}
+                onClick={() => setAnchor(a)}
+                title={anchorLabel(a)}
+                aria-label={`Stick to ${anchorLabel(a).toLowerCase()}`}
+                aria-pressed={active}
+                className={`flex rounded-md p-1 transition-colors hover:bg-accent-soft ${JUSTIFY[h]} ${ALIGN[v]}`}
+              >
+                <span
+                  className="block h-3 w-5 rounded-[3px] border transition-colors"
+                  style={{
+                    backgroundColor: active ? 'var(--accent)' : 'transparent',
+                    borderColor: active ? 'var(--accent)' : 'var(--ink-soft)',
+                    opacity: active ? 1 : 0.45,
+                  }}
+                />
+              </button>
+            )
+          })}
+        </div>
+        <button
+          onClick={() => setAnchor('free')}
+          className={`mb-1 w-full rounded-lg border px-3 py-1.5 text-xs transition-colors ${
+            anchor === 'free'
+              ? 'border-accent bg-accent-soft text-accent'
+              : 'border-line text-ink-soft hover:text-ink'
+          }`}
+        >
+          Free — drag it anywhere
+        </button>
+        <p className="mb-4 text-[10px] text-ink-soft">
+          {anchor === 'free'
+            ? 'Drag the top strip to move the widget.'
+            : `Stuck to the ${anchorLabel(anchor).toLowerCase()} of the screen it's on.`}
+        </p>
+
         {/* ---- Opacity ---- */}
         <Label>Opacity</Label>
         <div className="mb-4">
@@ -193,6 +279,26 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
           </div>
         )}
 
+        {/* ---- Shortcuts ---- */}
+        <Label>Shortcuts</Label>
+        <div className="mb-4 space-y-2">
+          {SHORTCUT_ROWS.map((row) => {
+            const other = SHORTCUT_ROWS.find((r) => r.key !== row.key)!
+            return (
+              <ShortcutRow
+                key={row.key}
+                label={row.label}
+                hint={row.hint}
+                value={shortcuts[row.key]}
+                defaultValue={DEFAULT_SHORTCUTS[row.key]}
+                taken={shortcuts[other.key] ? { by: other.label, accelerator: shortcuts[other.key] } : null}
+                status={shortcutStatus[row.key]}
+                onChange={(acc) => setShortcut(row.key, acc)}
+              />
+            )
+          })}
+        </div>
+
         {/* ---- Startup ---- */}
         <Label>Startup</Label>
         <button
@@ -218,6 +324,109 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
         </div>
       </motion.div>
     </motion.div>
+  )
+}
+
+// A global shortcut with a click-to-record button.
+function ShortcutRow({
+  label,
+  hint,
+  value,
+  defaultValue,
+  taken,
+  status,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: string
+  defaultValue: string
+  taken: { by: string; accelerator: string } | null
+  status?: ShortcutState
+  onChange: (accelerator: string) => void
+}) {
+  const [recording, setRecording] = useState(false)
+  const [error, setError] = useState('')
+  // Read through a ref so re-renders mid-recording don't re-run the effect.
+  const latest = useRef({ taken, onChange })
+  latest.current = { taken, onChange }
+
+  useEffect(() => {
+    if (!recording) return
+    // Pause the global shortcuts so pressing the current combo records it
+    // instead of firing it.
+    api.suspendShortcuts(true)
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const { taken, onChange } = latest.current
+      const plain = !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey
+      if (plain && e.key === 'Escape') return setRecording(false)
+      if (plain && (e.key === 'Backspace' || e.key === 'Delete')) {
+        onChange('')
+        setError('')
+        return setRecording(false)
+      }
+      const result = acceleratorFromEvent(e)
+      if (!result) return // only modifiers so far
+      if ('error' in result) return setError(result.error)
+      if (taken && result.accelerator === taken.accelerator) {
+        return setError(`Already used for “${taken.by}”`)
+      }
+      onChange(result.accelerator)
+      setError('')
+      setRecording(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      api.suspendShortcuts(false)
+    }
+  }, [recording])
+
+  const failed = !recording && status === 'failed' && !!value
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs text-ink">{label}</p>
+          <p className="truncate text-[10px] text-ink-soft">{hint}</p>
+        </div>
+        <button
+          onClick={() => {
+            setError('')
+            setRecording((r) => !r)
+          }}
+          onBlur={() => setRecording(false)}
+          className={`shrink-0 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors ${
+            recording ? 'animate-pulse border-accent bg-accent-soft text-accent' : 'border-line text-ink hover:border-accent'
+          }`}
+          title={recording ? 'Press a key combo' : 'Click to change'}
+        >
+          {recording ? 'Press keys…' : formatAccelerator(value)}
+        </button>
+      </div>
+      {(recording || error || failed || value !== defaultValue) && (
+        <div className="mt-1 flex items-center justify-between gap-2 text-[10px]">
+          <span className="min-w-0" style={{ color: error || failed ? '#f6736b' : 'var(--ink-soft)' }}>
+            {error ||
+              (recording
+                ? 'Esc to cancel · Backspace to turn off'
+                : failed
+                  ? 'Another app is using this combo, pick another'
+                  : '')}
+          </span>
+          {!recording && value !== defaultValue && (
+            <button
+              onClick={() => onChange(defaultValue)}
+              className="shrink-0 text-ink-soft transition-colors hover:text-accent"
+            >
+              Reset to {formatAccelerator(defaultValue)}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

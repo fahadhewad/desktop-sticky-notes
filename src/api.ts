@@ -1,4 +1,5 @@
-import type { AppState, Settings, Theme } from './types'
+import type { AppState, QuickTodo, Settings, ShortcutStatus, Theme } from './types'
+import { DEFAULT_SHORTCUTS } from './shortcuts'
 
 // The shape the preload script exposes on window.api. Kept in one place so the
 // renderer and preload stay in sync.
@@ -15,6 +16,13 @@ export interface StickyApi {
   notify(title: string, body: string): void
   snoozeReminder(id: string, minutes: number): void
   onTaskDue(cb: (id: string) => void): () => void
+  getShortcutStatus(): Promise<ShortcutStatus>
+  onShortcutStatus(cb: (status: ShortcutStatus) => void): () => void
+  suspendShortcuts(suspended: boolean): void
+  quickAdd(todo: QuickTodo): void
+  closeQuick(): void
+  onQuickOpen(cb: () => void): () => void
+  onQuickAdd(cb: (todo: QuickTodo) => void): () => void
 }
 
 declare global {
@@ -30,6 +38,8 @@ const DEFAULT_SETTINGS: Settings = {
   accentColor: '#f6b06b',
   opacity: 1,
   launchAtStartup: false,
+  anchor: 'free',
+  shortcuts: DEFAULT_SHORTCUTS,
   sizeProfiles: [
     { id: 'compact', name: 'Compact', width: 560, height: 380 },
     { id: 'standard', name: 'Standard', width: 720, height: 460 },
@@ -73,6 +83,21 @@ const browserFallback: StickyApi = {
   },
   snoozeReminder() {},
   onTaskDue() {
+    return () => {}
+  },
+  async getShortcutStatus() {
+    return {}
+  },
+  onShortcutStatus() {
+    return () => {}
+  },
+  suspendShortcuts() {},
+  quickAdd() {},
+  closeQuick() {},
+  onQuickOpen() {
+    return () => {}
+  },
+  onQuickAdd() {
     return () => {}
   },
 }

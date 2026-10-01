@@ -1,12 +1,32 @@
 'use strict'
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, nativeImage, globalShortcut } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Notification,
+  Tray,
+  Menu,
+  nativeImage,
+  globalShortcut,
+  screen,
+} = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const { pinToDesktop } = require('./win32')
 const { computeTheme, watchWallpaper } = require('./wallpaper')
-const { rescheduleAll, snoozeTask } = require('./scheduler')
+const { rescheduleAll, snoozeTask, rescheduleDeadlines } = require('./scheduler')
 
 const isDev = process.env.NODE_ENV === 'development'
+
+// Mirrors DEFAULT_SHORTCUTS in src/shortcuts.ts. An empty string means "off".
+const DEFAULT_SHORTCUTS = {
+  quickAdd: 'CommandOrControl+Alt+N',
+  toggle: 'CommandOrControl+Shift+S',
+}
+
+const ANCHOR_MARGIN = 16 // gap between an anchored widget and the screen edge
+const QUICK_WIDTH = 600
+const QUICK_HEIGHT = 168
 
 const defaults = {
   todos: [],
@@ -30,6 +50,7 @@ const defaults = {
 const store = new Store({ defaults })
 
 let win = null
+let quickWin = null
 let tray = null
 let hintShown = false
 let unpin = () => {}
@@ -64,13 +85,10 @@ function createWindow() {
     },
   })
 
-  if (isDev) {
-    win.loadURL('http://localhost:5173')
-  } else {
-    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
-  }
+  loadRenderer(win)
 
   win.once('ready-to-show', () => {
+    applyAnchor()
     win.show()
     // Pin to the desktop layer (Windows only; no-op elsewhere).
     unpin = pinToDesktop(win)
@@ -86,8 +104,10 @@ function createWindow() {
     resizeTimer = setTimeout(() => {
       store.set('settings.width', width)
       store.set('settings.height', height)
+      snapToAnchor()
     }, 400)
   })
+  win.on('unmaximize', snapToAnchor)
 
   // --- remember position ---
   let moveTimer = null
@@ -100,7 +120,149 @@ function createWindow() {
 
   win.on('closed', () => {
     win = null
+    // The hidden quick-add window would otherwise keep the app alive.
+    if (quickWin) quickWin.destroy()
   })
+}
+
+function loadRenderer(target, hash) {
+  if (isDev) {
+    target.loadURL(`http://localhost:5173/${hash ? `#${hash}` : ''}`)
+  } else {
+    target.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), hash ? { hash } : undefined)
+  }
+}
+
+// --- anchoring: optionally stick the widget to a corner / edge of its screen ---
+function currentAnchor() {
+  const anchor = store.get('settings.anchor')
+  return anchor && anchor !== 'free' ? anchor : null
+}
+
+// Top-left position that puts a width x height window at `anchor` (e.g.
+// 'top-right') on the display the widget is currently on.
+function anchoredPosition(anchor, width, height) {
+  const wa = screen.getDisplayMatching(win.getBounds()).workArea
+  const [v, h] = anchor.split('-')
+  const x =
+    h === 'left'
+      ? wa.x + ANCHOR_MARGIN
+      : h === 'right'
+        ? wa.x + wa.width - width - ANCHOR_MARGIN
+        : wa.x + Math.round((wa.width - width) / 2)
+  const y =
+    v === 'top'
+      ? wa.y + ANCHOR_MARGIN
+      : v === 'bottom'
+        ? wa.y + wa.height - height - ANCHOR_MARGIN
+        : wa.y + Math.round((wa.height - height) / 2)
+  return { x: Math.max(wa.x, x), y: Math.max(wa.y, y) }
+}
+
+function snapToAnchor() {
+  const anchor = currentAnchor()
+  if (!win || !anchor || win.isMaximized()) return
+  const [width, height] = win.getSize()
+  const { x, y } = anchoredPosition(anchor, width, height)
+  const [cx, cy] = win.getPosition()
+  if (cx !== x || cy !== y) win.setPosition(x, y)
+}
+
+let appliedAnchor
+function applyAnchor() {
+  if (!win) return
+  appliedAnchor = currentAnchor()
+  // An anchored widget stays put; the renderer also drops its drag region.
+  win.setMovable(!appliedAnchor)
+  snapToAnchor()
+}
+
+// --- quick add: a small always-on-top box summoned by a global shortcut ---
+function createQuickWindow() {
+  quickWin = new BrowserWindow({
+    width: QUICK_WIDTH,
+    height: QUICK_HEIGHT,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    backgroundColor: '#00000000',
+    alwaysOnTop: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+  quickWin.setAlwaysOnTop(true, 'screen-saver')
+  loadRenderer(quickWin, 'quick')
+  // Like a launcher: clicking anywhere else dismisses it (the draft is kept).
+  quickWin.on('blur', () => quickWin && quickWin.hide())
+  quickWin.on('closed', () => {
+    quickWin = null
+  })
+}
+
+function toggleQuickCapture() {
+  if (!quickWin) createQuickWindow()
+  if (quickWin.isVisible() && quickWin.isFocused()) {
+    quickWin.hide()
+    return
+  }
+  // Open on whichever screen the mouse is on, a little above centre.
+  const wa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea
+  quickWin.setBounds({
+    x: Math.round(wa.x + (wa.width - QUICK_WIDTH) / 2),
+    y: Math.round(wa.y + wa.height * 0.28),
+    width: QUICK_WIDTH,
+    height: QUICK_HEIGHT,
+  })
+  quickWin.show()
+  quickWin.focus()
+  quickWin.webContents.send('quick:open')
+}
+
+// --- global shortcuts (configurable in Settings) ---
+let shortcutStatus = {}
+let shortcutsSuspended = false
+let registeredShortcuts = null
+
+function currentShortcuts() {
+  return { ...DEFAULT_SHORTCUTS, ...(store.get('settings.shortcuts') || {}) }
+}
+
+function registerShortcuts() {
+  globalShortcut.unregisterAll()
+  registeredShortcuts = null
+  // Paused while the user records a new combo in Settings, so pressing the
+  // current one doesn't fire it.
+  if (shortcutsSuspended) return
+  const shortcuts = currentShortcuts()
+  const actions = { toggle: toggleWindow, quickAdd: toggleQuickCapture }
+  const status = {}
+  for (const [name, action] of Object.entries(actions)) {
+    const accelerator = shortcuts[name]
+    if (!accelerator) {
+      status[name] = 'off'
+      continue
+    }
+    let ok = false
+    try {
+      ok = globalShortcut.register(accelerator, action)
+    } catch (err) {
+      console.warn(`[shortcut] invalid accelerator ${accelerator}:`, err.message)
+    }
+    if (!ok) console.warn(`[shortcut] could not register ${accelerator} (${name})`)
+    status[name] = ok ? 'ok' : 'failed'
+  }
+  registeredShortcuts = JSON.stringify(shortcuts)
+  shortcutStatus = status
+  if (win) win.webContents.send('shortcuts:status', status)
 }
 
 // --- system tray: the widget tucks away here instead of cluttering the taskbar ---
@@ -164,6 +326,17 @@ function startScheduler() {
   rescheduleAll(store.get('schedule'), onTaskDue)
 }
 
+// --- to-do deadlines ---
+function onDeadline(todo) {
+  if (Notification.isSupported()) {
+    new Notification({ title: 'Deadline', body: todo.text }).show()
+  }
+}
+
+function startDeadlines() {
+  rescheduleDeadlines(store.get('boards'), onDeadline)
+}
+
 // Reflect the "launch at startup" setting into the OS login items.
 function applyLoginItem(settings) {
   try {
@@ -190,13 +363,31 @@ ipcMain.handle('state:load', () => {
 })
 
 ipcMain.handle('state:save', (_e, key, value) => {
+  if (key === 'settings') {
+    // The main process owns the window position (saved on move), so don't let
+    // the renderer's possibly stale copy overwrite it.
+    value = { ...value, position: store.get('settings.position') }
+  }
   store.set(key, value)
   if (key === 'schedule') startScheduler()
-  if (key === 'settings') applyLoginItem(value)
+  if (key === 'boards') startDeadlines()
+  if (key === 'settings') {
+    applyLoginItem(value)
+    if (currentAnchor() !== appliedAnchor) applyAnchor()
+    if (!shortcutsSuspended && JSON.stringify(currentShortcuts()) !== registeredShortcuts) {
+      registerShortcuts()
+    }
+  }
 })
 
 ipcMain.on('window:resize', (_e, width, height) => {
-  if (win) win.setSize(Math.round(width), Math.round(height))
+  if (!win) return
+  const w = Math.round(width)
+  const h = Math.round(height)
+  const anchor = currentAnchor()
+  // Resize and re-anchor in one step so an anchored widget doesn't jump.
+  if (anchor && !win.isMaximized()) win.setBounds({ ...anchoredPosition(anchor, w, h), width: w, height: h })
+  else win.setSize(w, h)
 })
 
 ipcMain.on('window:minimize', () => hideToTray())
@@ -218,16 +409,34 @@ ipcMain.on('reminder:snooze', (_e, id, minutes) => {
   if (item) snoozeTask(item, minutes, onTaskDue)
 })
 
+ipcMain.handle('shortcuts:status', () => shortcutStatus)
+ipcMain.on('shortcuts:suspend', (_e, suspended) => {
+  shortcutsSuspended = !!suspended
+  // The widget is non-activating on Windows, so make sure it is the one
+  // receiving key presses while a new combo is recorded.
+  if (shortcutsSuspended && win && !win.isFocused()) win.focus()
+  registerShortcuts()
+})
+
+// The quick-add box hands its note to the widget, which owns the boards.
+ipcMain.on('quick:add', (_e, todo) => {
+  if (win && todo && typeof todo.text === 'string') win.webContents.send('todo:quick-add', todo)
+})
+ipcMain.on('quick:close', () => quickWin && quickWin.hide())
+
 // --- lifecycle ---
 app.whenReady().then(() => {
   createWindow()
+  createQuickWindow() // pre-warmed so the shortcut opens it instantly
   createTray()
   startScheduler()
+  startDeadlines()
   applyLoginItem(store.get('settings'))
-  // Global hotkey to summon / hide the widget from anywhere.
-  if (!globalShortcut.register('CommandOrControl+Shift+S', toggleWindow)) {
-    console.warn('[shortcut] could not register Ctrl+Shift+S')
-  }
+  registerShortcuts()
+  // Keep an anchored widget in its spot when screens or the taskbar change.
+  screen.on('display-metrics-changed', snapToAnchor)
+  screen.on('display-added', snapToAnchor)
+  screen.on('display-removed', snapToAnchor)
   unwatch = watchWallpaper((theme) => {
     if (win) win.webContents.send('theme:changed', theme)
   })

@@ -1,7 +1,7 @@
 'use strict'
-// Turns schedule items into recurring jobs. When a job fires we call onDue(id);
-// the main process then shows a native notification and tells the renderer to
-// highlight the item.
+// Turns schedule items into recurring jobs (and to-do deadlines into one-off
+// ones). When a job fires we call onDue(item); the main process then shows a
+// native notification and tells the renderer to highlight the item.
 
 const schedule = require('node-schedule')
 
@@ -89,4 +89,23 @@ function snoozeTask(item, minutes, onDue) {
   }
 }
 
-module.exports = { rescheduleAll, snoozeTask }
+// One-off notification for each open to-do whose deadline is still ahead.
+let deadlineJobs = []
+function rescheduleDeadlines(boards, onDue) {
+  deadlineJobs.forEach((j) => j.cancel())
+  deadlineJobs = []
+  const now = Date.now()
+  for (const board of boards || []) {
+    for (const todo of board.todos || []) {
+      if (todo.done || typeof todo.due !== 'number' || todo.due <= now) continue
+      try {
+        const job = schedule.scheduleJob(new Date(todo.due), () => onDue(todo))
+        if (job) deadlineJobs.push(job)
+      } catch (err) {
+        console.warn('[scheduler] could not schedule deadline', todo.id, err.message)
+      }
+    }
+  }
+}
+
+module.exports = { rescheduleAll, snoozeTask, rescheduleDeadlines }
