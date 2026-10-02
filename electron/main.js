@@ -12,7 +12,7 @@ const {
 } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
-const { pinToDesktop } = require('./win32')
+const { pinToDesktop, sendToBottom, setRaised } = require('./win32')
 const { computeTheme, watchWallpaper } = require('./wallpaper')
 const { rescheduleAll, snoozeTask, rescheduleDeadlines } = require('./scheduler')
 
@@ -108,6 +108,8 @@ function createWindow() {
     }, 400)
   })
   win.on('unmaximize', snapToAnchor)
+  // A widget summoned to the front drops back to the desktop once you click away.
+  win.on('blur', lowerWindow)
 
   // --- remember position ---
   let moveTimer = null
@@ -243,7 +245,7 @@ function registerShortcuts() {
   // current one doesn't fire it.
   if (shortcutsSuspended) return
   const shortcuts = currentShortcuts()
-  const actions = { toggle: toggleWindow, quickAdd: toggleQuickCapture }
+  const actions = { toggle: summonOrHide, quickAdd: toggleQuickCapture }
   const status = {}
   for (const [name, action] of Object.entries(actions)) {
     const accelerator = shortcuts[name]
@@ -289,10 +291,42 @@ function createTray() {
   }
 }
 
+// Tray: hide when showing, otherwise bring it back in front of everything.
 function toggleWindow() {
   if (!win) return
   if (win.isVisible()) win.hide()
-  else win.show()
+  else raiseWindow()
+}
+
+// Show/hide shortcut: the first press brings the widget in front of your
+// other windows (and focuses it for typing); pressing again while it's in
+// front hides it.
+function summonOrHide() {
+  if (!win) return
+  if (win.isVisible() && win.isFocused()) win.hide()
+  else raiseWindow()
+}
+
+let isRaised = false
+function raiseWindow() {
+  if (!win) return
+  isRaised = true
+  setRaised(true)
+  win.show()
+  // Briefly topmost so it lands above everything, then a normal window that
+  // other apps can cover again once you click them.
+  win.setAlwaysOnTop(true)
+  win.moveTop()
+  win.focus()
+  setTimeout(() => win && win.setAlwaysOnTop(false), 200)
+}
+
+function lowerWindow() {
+  if (!win || !isRaised) return
+  isRaised = false
+  setRaised(false)
+  win.setAlwaysOnTop(false)
+  if (process.platform === 'win32') sendToBottom(win)
 }
 
 // Hide to the tray (used by the widget's "minimise" control). A real minimise is

@@ -231,7 +231,7 @@ export default function App() {
 
       <AnimatePresence>
         {showSpanish && (
-          <SpanishPanel learnedCount={spanish.learnedCount} onClose={() => setShowSpanish(false)} />
+          <SpanishPanel spanish={spanish} setSpanish={setSpanish} onClose={() => setShowSpanish(false)} />
         )}
       </AnimatePresence>
     </motion.div>
