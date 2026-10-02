@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import type { Anchor, Settings, ShortcutState, ShortcutStatus, Shortcuts, SizeProfile } from '../types'
 import { api } from '../api'
 import { uid } from '../utils'
+import { frontSurface } from '../theme'
 import { acceleratorFromEvent, DEFAULT_SHORTCUTS, formatAccelerator } from '../shortcuts'
 
 interface Props {
@@ -13,6 +14,16 @@ interface Props {
 }
 
 const ACCENTS = ['#f6b06b', '#7aa2f7', '#9ece6a', '#e06c9f', '#bb9af7', '#f7768e']
+
+// Background presets for when the widget is in front of other windows.
+const FRONT_COLORS = [
+  { hex: '#1d1f27', name: 'Charcoal' },
+  { hex: '#2b2440', name: 'Plum' },
+  { hex: '#173a3a', name: 'Pine' },
+  { hex: '#f6f1e7', name: 'Paper' },
+  { hex: '#fff3b0', name: 'Sticky note' },
+  { hex: '#e5eeff', name: 'Ice' },
+]
 
 const ANCHORS: Exclude<Anchor, 'free'>[] = [
   'top-left',
@@ -278,6 +289,73 @@ export default function SettingsPanel({ settings, setSettings, applySize, onClos
             ))}
           </div>
         )}
+
+        {/* ---- In front of other apps ---- */}
+        <Label>In front of other apps</Label>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setSettings((s) => ({ ...s, frontColor: undefined }))}
+            className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+              !settings.frontColor ? 'border-accent bg-accent-soft text-accent' : 'border-line text-ink-soft hover:text-ink'
+            }`}
+          >
+            Theme
+          </button>
+          {FRONT_COLORS.map((c) => (
+            <button
+              key={c.hex}
+              onClick={() => setSettings((s) => ({ ...s, frontColor: c.hex }))}
+              title={c.name}
+              aria-label={`${c.name} background`}
+              aria-pressed={settings.frontColor === c.hex}
+              className="h-6 w-6 rounded-full border-2 transition-transform hover:scale-110"
+              style={{
+                backgroundColor: c.hex,
+                borderColor: settings.frontColor === c.hex ? 'var(--accent)' : 'var(--line)',
+              }}
+            />
+          ))}
+          {/* Any colour you like */}
+          <label
+            title="Pick any colour"
+            className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border-2 transition-transform hover:scale-110"
+            style={{
+              background:
+                settings.frontColor && !FRONT_COLORS.some((c) => c.hex === settings.frontColor)
+                  ? settings.frontColor
+                  : 'conic-gradient(#f6736b, #f3d44e, #9ece6a, #7aa2f7, #bb9af7, #f6736b)',
+              borderColor:
+                settings.frontColor && !FRONT_COLORS.some((c) => c.hex === settings.frontColor)
+                  ? 'var(--accent)'
+                  : 'var(--line)',
+            }}
+          >
+            <input
+              type="color"
+              value={settings.frontColor ?? '#1d1f27'}
+              onChange={(e) => setSettings((s) => ({ ...s, frontColor: e.target.value }))}
+              aria-label="Custom background colour"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+          </label>
+        </div>
+        {/* Preview of how it looks over another window */}
+        <div
+          className="mb-1 rounded-lg border border-line px-3 py-2 text-xs"
+          style={{
+            ...(settings.frontColor ? (frontSurface(settings.frontColor) as React.CSSProperties) : {}),
+            backgroundColor: 'var(--glass-solid)',
+            color: 'var(--ink)',
+          }}
+        >
+          <span className="font-medium">Buy milk</span>
+          <span className="block text-[10px]" style={{ color: 'var(--ink-soft)' }}>
+            due tomorrow 9:00 AM
+          </span>
+        </div>
+        <p className="mb-4 text-[10px] text-ink-soft">
+          The widget turns solid in this colour while it's in front of another window.
+        </p>
 
         {/* ---- Shortcuts ---- */}
         <Label>Shortcuts</Label>
