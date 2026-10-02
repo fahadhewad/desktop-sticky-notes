@@ -27,12 +27,19 @@ and a glass UI that can match your wallpaper's colours.
 - **Smart reminders** — every completion is logged, and each reminder learns
   your *usual* completion time. Flip on **adapt** (the sparkle) and it fires at
   your real usual time instead of the set one.
-- **Daily Spanish** — learn one new verb a day from a bundled list of the 120
-  most common Spanish verbs (present-tense conjugations + an example with a
-  literal translation), then **practice** by translating or conjugating
-  everything you've learned. Fully offline — no API.
+- **Daily Spanish** — learn one new verb a day (or more, if you like) from the
+  **500 most common Spanish verbs**, each labelled **regular** or **irregular**
+  with a note on what's irregular, an example with a literal translation, and
+  full tables for ten tenses. **Tenses** has a short lesson for each tense
+  (when to use it, how to form it, what to watch out for). **Practice** drills
+  meanings or any tense on your verbs or the top 25 to 500: Enter checks,
+  Enter again moves on, missed questions come back a little later and the same
+  question never repeats back to back. **Verbs** lets you search and filter all
+  500. Fully offline — no API.
 - **Desktop-pinned** — frameless, transparent, bottom-of-the-z-order window that
   stays on your desktop without covering other apps (Windows, via `user32`).
+  Press the show/hide shortcut to bring it in front of everything; press it
+  again to hide it. Click another app and it drops back to the desktop.
 - **Stick it anywhere** — in Settings → Position, stick the widget to any corner
   or edge (top right, top left, bottom centre, centre…) of the screen it's on,
   and it stays there through resizes and display changes. Or leave it *Free*
@@ -42,8 +49,8 @@ and a glass UI that can match your wallpaper's colours.
 - **Yours to tune** — adjustable widget **opacity** and an optional **launch at
   startup** so it's there every time you log in.
 - **Keyboard shortcuts** — global shortcuts you can change in Settings →
-  Shortcuts (click, press a new combo): quick add (Ctrl+Alt+N) and show/hide
-  (Ctrl+Shift+S). In the widget, Ctrl+N jumps to the add box and Esc tucks it
+  Shortcuts (click, press a new combo): quick add (Ctrl+Alt+N) and bring to
+  front / hide (Ctrl+Shift+S). In the widget, Ctrl+N jumps to the add box and Esc tucks it
   away.
 - **Wallpaper-matched theme** — derives the glass tint and accent from your
   current wallpaper and re-themes when you change it. Or turn it off and pick a

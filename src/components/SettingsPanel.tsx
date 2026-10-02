@@ -40,7 +40,7 @@ const anchorLabel = (a: Anchor) =>
 
 const SHORTCUT_ROWS: { key: keyof Shortcuts; label: string; hint: string }[] = [
   { key: 'quickAdd', label: 'Quick add', hint: 'Pop up a box to jot a note from anywhere' },
-  { key: 'toggle', label: 'Show / hide widget', hint: 'Tuck the widget away or bring it back' },
+  { key: 'toggle', label: 'Show / hide widget', hint: 'Bring it in front, press again to hide' },
 ]
 
 export default function SettingsPanel({ settings, setSettings, applySize, onClose }: Props) {

@@ -68,13 +68,22 @@ function sendToBottom(win) {
   }
 }
 
+// While raised (summoned in front of other windows by the shortcut) we stop
+// pushing the widget back down to the desktop layer.
+let raised = false
+function setRaised(value) {
+  raised = !!value
+}
+
 // Pin the window to the desktop layer and keep it there. Returns a cleanup fn.
 function pinToDesktop(win) {
   if (process.platform !== 'win32') return () => {}
   makeNonActivating(win)
   sendToBottom(win)
   // Re-assert bottom position whenever something might have raised it.
-  const reassert = () => sendToBottom(win)
+  const reassert = () => {
+    if (!raised) sendToBottom(win)
+  }
   win.on('show', reassert)
   win.on('focus', reassert)
   win.on('blur', reassert)
@@ -82,4 +91,4 @@ function pinToDesktop(win) {
   return () => clearInterval(interval)
 }
 
-module.exports = { pinToDesktop, sendToBottom }
+module.exports = { pinToDesktop, sendToBottom, setRaised }
