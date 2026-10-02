@@ -58,6 +58,7 @@ function buildTheme(palette) {
   return {
     glass: rgba(glassBase, 0.55),
     glassStrong: rgba(glassBase, 0.8),
+    glassSolid: rgba(glassBase, 0.96),
     ink: rgba(ink, 0.96),
     inkSoft: rgba(ink, 0.55),
     accent: rgba(accent, 1),

@@ -39,7 +39,10 @@ and a glass UI that can match your wallpaper's colours.
 - **Desktop-pinned** — frameless, transparent, bottom-of-the-z-order window that
   stays on your desktop without covering other apps (Windows, via `user32`).
   Press the show/hide shortcut to bring it in front of everything; press it
-  again to hide it. Click another app and it drops back to the desktop.
+  again to hide it. Clicking into any text box also brings it forward and
+  gives it the keyboard, so typing lands in the widget. While it's in front it
+  turns solid and fully opaque so it's readable over other apps; click another
+  app and it drops back to the desktop and its usual see-through look.
 - **Stick it anywhere** — in Settings → Position, stick the widget to any corner
   or edge (top right, top left, bottom centre, centre…) of the screen it's on,
   and it stays there through resizes and display changes. Or leave it *Free*

@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('api', {
   },
 
   minimize: () => ipcRenderer.send('window:minimize'),
+  focusForTyping: () => ipcRenderer.send('window:focus-for-typing'),
+  onRaisedChanged: (cb) => {
+    const handler = (_e, raised) => cb(raised)
+    ipcRenderer.on('window:raised', handler)
+    return () => ipcRenderer.removeListener('window:raised', handler)
+  },
   toggleMaximize: () => ipcRenderer.send('window:toggle-maximize'),
   close: () => ipcRenderer.send('window:close'),
 
