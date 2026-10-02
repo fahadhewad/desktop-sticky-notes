@@ -9,6 +9,8 @@ export interface StickyApi {
   resizeWindow(width: number, height: number): void
   onWindowResized(cb: (size: { width: number; height: number }) => void): () => void
   minimize(): void
+  focusForTyping(): void
+  onRaisedChanged(cb: (raised: boolean) => void): () => void
   toggleMaximize(): void
   close(): void
   getTheme(): Promise<Theme | null>
@@ -68,6 +70,10 @@ const browserFallback: StickyApi = {
     return () => {}
   },
   minimize() {},
+  focusForTyping() {},
+  onRaisedChanged() {
+    return () => {}
+  },
   toggleMaximize() {},
   close() {},
   async getTheme() {

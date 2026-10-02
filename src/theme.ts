@@ -7,6 +7,7 @@ export function applyTheme(theme: Theme) {
   const root = document.documentElement.style
   root.setProperty('--glass', theme.glass)
   root.setProperty('--glass-strong', theme.glassStrong)
+  root.setProperty('--glass-solid', theme.glassSolid)
   root.setProperty('--ink', theme.ink)
   root.setProperty('--ink-soft', theme.inkSoft)
   root.setProperty('--accent', theme.accent)
@@ -20,6 +21,7 @@ export function themeFromAccent(accent: string): Theme {
   return {
     glass: 'rgba(24, 26, 33, 0.55)',
     glassStrong: 'rgba(24, 26, 33, 0.80)',
+    glassSolid: 'rgba(24, 26, 33, 0.96)',
     ink: 'rgba(245, 247, 252, 0.96)',
     inkSoft: 'rgba(245, 247, 252, 0.55)',
     accent,

@@ -19,6 +19,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [dueIds, setDueIds] = useState<Set<string>>(new Set())
   const [showSpanish, setShowSpanish] = useState(false)
+  // In front of other windows (summoned or typing) rather than on the desktop.
+  const [raised, setRaised] = useState(false)
   const [spanish, setSpanish] = useState<SpanishProgress>({ learnedCount: 0, lastLearnedDate: '' })
 
   // ---- initial load (migrating any pre-boards todos into a default board) ----
@@ -107,6 +109,35 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  useEffect(() => api.onRaisedChanged(setRaised), [])
+
+  // ---- take keyboard focus when you click into a text field ----
+  // The widget doesn't activate on a plain click (so it can stay on the
+  // desktop), which would send typing to another app. Ask for focus when a
+  // click lands in a text field, or when one appears right after a click
+  // (double-click to edit, "+ New", the deadline editor…).
+  useEffect(() => {
+    let lastPointer = 0
+    const typable = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      !!el.closest(
+        'input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=button]), textarea, [contenteditable="true"]',
+      )
+    const onPointerDown = (e: PointerEvent) => {
+      lastPointer = Date.now()
+      if (typable(e.target)) api.focusForTyping()
+    }
+    const onFocusIn = (e: FocusEvent) => {
+      if (typable(e.target) && Date.now() - lastPointer < 1500) api.focusForTyping()
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('focusin', onFocusIn, true)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('focusin', onFocusIn, true)
+    }
+  }, [])
+
   const clearDue = useCallback((id: string) => {
     setDueIds((prev) => {
       if (!prev.has(id)) return prev
@@ -185,8 +216,11 @@ export default function App() {
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="h-full w-full overflow-hidden rounded-xl2 border border-line bg-glass shadow-card backdrop-blur-2xl backdrop-saturate-150"
       style={{
-        opacity: settings.opacity ?? 1,
-        transition: 'opacity 0.4s ease, background 0.6s ease, border-color 0.6s ease',
+        // Over another app the see-through glass is hard to read, so go solid
+        // and ignore the opacity setting until it drops back to the desktop.
+        opacity: raised ? 1 : (settings.opacity ?? 1),
+        backgroundColor: raised ? 'var(--glass-solid)' : undefined,
+        transition: 'opacity 0.25s ease, background-color 0.25s ease, border-color 0.6s ease',
       }}
     >
       <div className="flex h-full flex-col">

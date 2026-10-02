@@ -109,6 +109,7 @@ export interface QuickTodo {
 export interface Theme {
   glass: string
   glassStrong: string
+  glassSolid: string // used while the widget is in front of other windows
   ink: string
   inkSoft: string
   accent: string

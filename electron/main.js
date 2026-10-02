@@ -312,6 +312,7 @@ function raiseWindow() {
   if (!win) return
   isRaised = true
   setRaised(true)
+  win.webContents.send('window:raised', true)
   win.show()
   // Briefly topmost so it lands above everything, then a normal window that
   // other apps can cover again once you click them.
@@ -321,10 +322,19 @@ function raiseWindow() {
   setTimeout(() => win && win.setAlwaysOnTop(false), 200)
 }
 
+// On Windows the widget never activates from a plain click (that's what keeps
+// it on the desktop layer), so key presses would keep going to whichever app
+// had focus. When you click into a text field the renderer asks for focus: the
+// widget comes forward while you type and drops back when you click away.
+function focusForTyping() {
+  if (win && !win.isFocused()) raiseWindow()
+}
+
 function lowerWindow() {
   if (!win || !isRaised) return
   isRaised = false
   setRaised(false)
+  win.webContents.send('window:raised', false)
   win.setAlwaysOnTop(false)
   if (process.platform === 'win32') sendToBottom(win)
 }
@@ -425,6 +435,9 @@ ipcMain.on('window:resize', (_e, width, height) => {
 })
 
 ipcMain.on('window:minimize', () => hideToTray())
+ipcMain.on('window:focus-for-typing', (e) => {
+  if (win && e.sender === win.webContents) focusForTyping()
+})
 ipcMain.on('window:toggle-maximize', () => {
   if (!win) return
   if (win.isMaximized()) win.unmaximize()
@@ -446,9 +459,9 @@ ipcMain.on('reminder:snooze', (_e, id, minutes) => {
 ipcMain.handle('shortcuts:status', () => shortcutStatus)
 ipcMain.on('shortcuts:suspend', (_e, suspended) => {
   shortcutsSuspended = !!suspended
-  // The widget is non-activating on Windows, so make sure it is the one
-  // receiving key presses while a new combo is recorded.
-  if (shortcutsSuspended && win && !win.isFocused()) win.focus()
+  // Make sure the widget is the one receiving key presses while a new combo
+  // is recorded.
+  if (shortcutsSuspended) focusForTyping()
   registerShortcuts()
 })
 

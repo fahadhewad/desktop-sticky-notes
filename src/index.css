@@ -6,6 +6,7 @@
   /* Default (cool slate) theme. Overridden at runtime from the wallpaper. */
   --glass: rgba(28, 30, 38, 0.55);
   --glass-strong: rgba(28, 30, 38, 0.78);
+  --glass-solid: rgba(28, 30, 38, 0.96);
   --ink: rgba(244, 246, 252, 0.96);
   --ink-soft: rgba(244, 246, 252, 0.55);
   --accent: #f6b06b;
