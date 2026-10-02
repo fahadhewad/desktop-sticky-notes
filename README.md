@@ -35,7 +35,9 @@ and a glass UI that can match your wallpaper's colours.
   meanings or any tense on your verbs or the top 25 to 500: Enter checks,
   Enter again moves on, missed questions come back a little later and the same
   question never repeats back to back. **Verbs** lets you search and filter all
-  500. Fully offline — no API.
+  500. Switch between **Spain** and **Latin America** Spanish: Latin American
+  mode drops vosotros (ustedes covers "you all"), uses local words in examples
+  and flags words that differ, like coger. Fully offline — no API.
 - **Desktop-pinned** — frameless, transparent, bottom-of-the-z-order window that
   stays on your desktop without covering other apps (Windows, via `user32`).
   Press the show/hide shortcut to bring it in front of everything; press it

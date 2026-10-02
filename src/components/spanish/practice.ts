@@ -6,6 +6,7 @@
 import type { Tense } from '../../data/conjugate'
 import { conjugationOf, hasTense, type SpanishVerb } from '../../data/verbs'
 import type { PracticeMode } from '../../types'
+import type { Dialect } from '../../data/dialects'
 
 export type Question =
   | { kind: 'meaning'; verb: SpanishVerb; dir: 'es-en' | 'en-es' }
@@ -32,11 +33,12 @@ export function tensesFor(verb: SpanishVerb): Tense[] {
   return ALL_TENSES.filter((t) => hasTense(verb, t) && !(t === 'imperative' && verb.spec.only3))
 }
 
-// Which persons to ask about: it / they for gustar-type verbs, no yo in commands.
-export function personsFor(verb: SpanishVerb, tense: Tense): number[] {
+// Which persons to ask about: it / they for gustar-type verbs, no yo in
+// commands, and no vosotros in Latin American Spanish.
+export function personsFor(verb: SpanishVerb, tense: Tense, dialect: Dialect = 'spain'): number[] {
   if (verb.spec.only3) return [2, 5]
-  if (tense === 'imperative') return [1, 2, 3, 4, 5]
-  return [0, 1, 2, 3, 4, 5]
+  const all = tense === 'imperative' ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5]
+  return dialect === 'latam' ? all.filter((p) => p !== 4) : all
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -69,6 +71,7 @@ export class QuestionDeck {
   constructor(
     private readonly pool: SpanishVerb[],
     private readonly mode: PracticeMode,
+    private readonly dialect: Dialect = 'spain',
   ) {}
 
   get size() {
@@ -119,7 +122,7 @@ export class QuestionDeck {
     })
     const conjugate = (tense: Tense): Question => {
       const lastPerson = last?.kind === 'conjugate' && last.verb === verb && last.tense === tense ? last.person : undefined
-      return { kind: 'conjugate', verb, tense, person: pick(personsFor(verb, tense), lastPerson) }
+      return { kind: 'conjugate', verb, tense, person: pick(personsFor(verb, tense, this.dialect), lastPerson) }
     }
     const lastTense = last?.kind === 'conjugate' ? last.tense : undefined
 
