@@ -135,6 +135,22 @@ export default function App() {
   const activeBoard = boards.find((b) => b.id === settings.activeBoardId) ?? boards[0]
   const activeBoardId = activeBoard?.id ?? ''
 
+  // ---- notes typed into the quick-add box land on the active board ----
+  const activeBoardIdRef = useRef(activeBoardId)
+  activeBoardIdRef.current = activeBoardId
+  useEffect(() => {
+    return api.onQuickAdd(({ text, due }) => {
+      const t = text.trim()
+      if (!t) return
+      const todo: Todo = { id: uid(), text: t, done: false, createdAt: Date.now() }
+      if (typeof due === 'number') todo.due = due
+      setBoards((prev) => {
+        const target = prev.find((b) => b.id === activeBoardIdRef.current) ?? prev[0]
+        return prev.map((b) => (b === target ? { ...b, todos: [todo, ...b.todos] } : b))
+      })
+    })
+  }, [])
+
   const setActiveTodos: React.Dispatch<React.SetStateAction<Todo[]>> = (action) => {
     setBoards((prev) =>
       prev.map((b) =>
@@ -178,6 +194,7 @@ export default function App() {
           onOpenSettings={() => setShowSettings(true)}
           settingsOpen={showSettings}
           onOpenSpanish={() => setShowSpanish(true)}
+          locked={!!settings.anchor && settings.anchor !== 'free'}
         />
 
         <div className="flex min-h-0 flex-1">

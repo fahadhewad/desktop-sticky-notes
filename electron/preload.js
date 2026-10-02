@@ -32,4 +32,25 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('task:due', handler)
     return () => ipcRenderer.removeListener('task:due', handler)
   },
+
+  getShortcutStatus: () => ipcRenderer.invoke('shortcuts:status'),
+  onShortcutStatus: (cb) => {
+    const handler = (_e, status) => cb(status)
+    ipcRenderer.on('shortcuts:status', handler)
+    return () => ipcRenderer.removeListener('shortcuts:status', handler)
+  },
+  suspendShortcuts: (suspended) => ipcRenderer.send('shortcuts:suspend', suspended),
+
+  quickAdd: (todo) => ipcRenderer.send('quick:add', todo),
+  closeQuick: () => ipcRenderer.send('quick:close'),
+  onQuickOpen: (cb) => {
+    const handler = () => cb()
+    ipcRenderer.on('quick:open', handler)
+    return () => ipcRenderer.removeListener('quick:open', handler)
+  },
+  onQuickAdd: (cb) => {
+    const handler = (_e, todo) => cb(todo)
+    ipcRenderer.on('todo:quick-add', handler)
+    return () => ipcRenderer.removeListener('todo:quick-add', handler)
+  },
 })
