@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { VERBS } from '../../data/verbs'
 import type { PracticeMode, PracticePrefs } from '../../types'
 import { checkAnswer, QuestionDeck, usableVerbs, type Question, type Result } from './practice'
-import { Badge, ConjugationGrid, pronounsFor, TENSE_LABEL } from './ui'
+import { Badge, ConjugationGrid, pronounsFor, TENSE_LABEL, useDialect } from './ui'
 import { TENSES } from '../../data/tenses'
 
 interface Props {
@@ -29,7 +29,8 @@ export default function PracticeTab({ learnedCount, prefs, onPrefs }: Props) {
   }, [prefs, learnedCount])
 
   // A fresh deck whenever the settings change.
-  const deck = useMemo(() => new QuestionDeck(verbs, prefs.mode), [verbs, prefs.mode])
+  const dialect = useDialect()
+  const deck = useMemo(() => new QuestionDeck(verbs, prefs.mode, dialect), [verbs, prefs.mode, dialect])
   const [question, setQuestion] = useState<Question | null>(null)
   const [answer, setAnswer] = useState('')
   const [result, setResult] = useState<Result | null>(null)
@@ -190,6 +191,7 @@ export default function PracticeTab({ learnedCount, prefs, onPrefs }: Props) {
 }
 
 function Prompt({ q }: { q: Question }) {
+  const dialect = useDialect()
   const verb = <span className="font-semibold text-accent">{q.verb.infinitive}</span>
   if (q.kind === 'meaning') {
     return q.dir === 'es-en' ? (
@@ -205,7 +207,7 @@ function Prompt({ q }: { q: Question }) {
       <div className="flex items-center gap-2">
         <p className="text-sm text-ink">
           {verb} in the <span className="font-semibold text-ink">{TENSE_LABEL[q.tense].toLowerCase()}</span> for{' '}
-          <span className="font-semibold text-accent">{pronounsFor(q.tense, q.verb)[q.person]}</span>
+          <span className="font-semibold text-accent">{pronounsFor(q.tense, q.verb, dialect)[q.person]}</span>
         </p>
         <Badge regular={q.verb.regular} />
       </div>

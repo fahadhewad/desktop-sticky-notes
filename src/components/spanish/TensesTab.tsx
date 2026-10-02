@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { Tense } from '../../data/conjugate'
 import { TENSES, type TenseLesson } from '../../data/tenses'
 import { conjugationOf, VERBS, type SpanishVerb } from '../../data/verbs'
-import { BackButton, Chip, ConjugationGrid, Label, pronounsFor } from './ui'
+import { LESSON_NOTE } from '../../data/dialects'
+import { BackButton, Chip, ConjugationGrid, Label, pronounsFor, useDialect } from './ui'
 
 const byInfinitive = (inf: string) => VERBS.find((v) => v.infinitive === inf)!
 const MODELS = ['hablar', 'comer', 'vivir'].map(byInfinitive)
@@ -55,7 +56,8 @@ export default function TensesTab({ openId, onOpen, onPractice }: Props) {
 
 function Lesson({ lesson, onBack, onPractice }: { lesson: TenseLesson; onBack: () => void; onPractice: () => void }) {
   const [keyVerb, setKeyVerb] = useState<SpanishVerb>(() => byInfinitive(lesson.keyVerbs[0]))
-  const pronouns = pronounsFor(lesson.id)
+  const dialect = useDialect()
+  const pronouns = pronounsFor(lesson.id, undefined, dialect)
   const rows = pronouns.map((p, i) => ({ p, i })).filter(({ p }) => p)
 
   return (
@@ -82,6 +84,11 @@ function Lesson({ lesson, onBack, onPractice }: { lesson: TenseLesson; onBack: (
 
       <Label>How to form it</Label>
       <p className="text-xs leading-relaxed text-ink">{lesson.formation}</p>
+      {LESSON_NOTE[dialect] && (
+        <p className="mt-2 rounded-lg border border-line bg-accent-soft px-2.5 py-1.5 text-[11px] text-ink">
+          {LESSON_NOTE[dialect]}
+        </p>
+      )}
       {lesson.endings && (
         <div className="mt-2 overflow-x-auto rounded-xl border border-line bg-glass p-2">
           <table className="w-full text-xs">

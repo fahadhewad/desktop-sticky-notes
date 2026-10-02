@@ -194,7 +194,7 @@ export const TENSES: TenseLesson[] = [
     tip: 'In much of Latin America the preterite is used instead: Hoy comí pasta.',
     examples: [
       { es: 'He perdido las llaves.', en: 'I have lost the keys.' },
-      { es: '¿Has visto mi móvil?', en: 'Have you seen my phone?' },
+      { es: '¿Has visto mis llaves?', en: 'Have you seen my keys?' },
       { es: 'Nunca hemos ido a París.', en: 'We have never been to Paris.' },
     ],
     keyVerbs: ['hacer', 'decir', 'ver', 'poner', 'escribir', 'volver', 'abrir', 'romper'],
@@ -218,7 +218,7 @@ export const TENSES: TenseLesson[] = [
       { label: '-ir', forms: ['', '-e', '-a', '-amos', '-id', '-an'] },
     ],
     irregulars: 'Eight short tú commands to memorise: di (decir), haz (hacer), ve (ir), pon (poner), sal (salir), sé (ser), ten (tener), ven (venir).',
-    tip: 'Negative commands always use the subjunctive: no hables, no comas, no vengáis.',
+    tip: 'Negative commands always use the subjunctive: no hables, no comas, no vengan.',
     examples: [
       { es: 'Abre la ventana, por favor.', en: 'Open the window, please.' },
       { es: 'Hablen más despacio.', en: 'Speak more slowly (you all).' },

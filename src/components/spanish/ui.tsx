@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import type { Tense } from '../../data/conjugate'
-import { conjugationOf, IMPERATIVE_PRONOUNS, PRONOUNS, type SpanishVerb } from '../../data/verbs'
+import { IMPERATIVE_LABELS, LATAM_EXAMPLES, PRONOUN_LABELS, WORD_NOTES, type Dialect } from '../../data/dialects'
+import { conjugationOf, type SpanishVerb } from '../../data/verbs'
 import { tensesFor } from './practice'
+
+// Which Spanish the learner picked; everything below adapts to it.
+export const DialectContext = createContext<Dialect>('spain')
+export const useDialect = () => useContext(DialectContext)
 
 export const TENSE_LABEL: Record<Tense, string> = {
   present: 'Present',
@@ -16,12 +21,13 @@ export const TENSE_LABEL: Record<Tense, string> = {
   impSubjunctive: 'Imp. subjunctive',
 }
 
-export const pronounsFor = (tense: Tense, verb?: SpanishVerb): readonly string[] =>
+// Labels per person; an empty label hides it (no vosotros in Latin America).
+export const pronounsFor = (tense: Tense, verb: SpanishVerb | undefined, dialect: Dialect): readonly string[] =>
   verb?.spec.only3
     ? ['', '', 'it', '', '', 'they']
     : tense === 'imperative'
-      ? IMPERATIVE_PRONOUNS
-      : PRONOUNS
+      ? IMPERATIVE_LABELS[dialect]
+      : PRONOUN_LABELS[dialect]
 
 export function Badge({ regular }: { regular: boolean }) {
   return (
@@ -69,7 +75,7 @@ export function Chip({
 // One tense of one verb as a pronoun → form grid.
 export function ConjugationGrid({ verb, tense }: { verb: SpanishVerb; tense: Tense }) {
   const forms = conjugationOf(verb).forms[tense]
-  const pronouns = pronounsFor(tense, verb)
+  const pronouns = pronounsFor(tense, verb, useDialect())
   return (
     <div className="grid grid-cols-2 gap-x-5 gap-y-1.5">
       {forms.map((form, i) =>
@@ -89,6 +95,9 @@ export function VerbCard({ verb, eyebrow }: { verb: SpanishVerb; eyebrow?: strin
   const tenses = tensesFor(verb)
   const [tense, setTense] = useState<Tense>('present')
   const c = conjugationOf(verb)
+  const dialect = useDialect()
+  const example = (dialect === 'latam' && LATAM_EXAMPLES[verb.infinitive]) || verb.example
+  const wordNote = WORD_NOTES[verb.infinitive]?.[dialect]
   return (
     <div>
       {eyebrow && <p className="text-[11px] uppercase tracking-wider text-ink-soft">{eyebrow}</p>}
@@ -98,10 +107,13 @@ export function VerbCard({ verb, eyebrow }: { verb: SpanishVerb; eyebrow?: strin
       </div>
       <p className="text-sm text-accent">{verb.english}</p>
       {verb.notes.length > 0 && <p className="mt-0.5 text-[11px] text-ink-soft">{verb.notes.join(' · ')}</p>}
+      {wordNote && (
+        <p className="mt-2 rounded-lg border border-line bg-accent-soft px-2.5 py-1.5 text-[11px] text-ink">{wordNote}</p>
+      )}
 
       <div className="mt-3 rounded-xl border border-line bg-glass p-3">
-        <p className="text-sm text-ink">{verb.example.es}</p>
-        <p className="mt-0.5 text-xs italic text-ink-soft">{verb.example.en}</p>
+        <p className="text-sm text-ink">{example.es}</p>
+        <p className="mt-0.5 text-xs italic text-ink-soft">{example.en}</p>
       </div>
 
       <div className="mb-2 mt-4 flex flex-wrap gap-1">

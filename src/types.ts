@@ -1,4 +1,5 @@
 import type { Tense } from './data/conjugate'
+import type { Dialect } from './data/dialects'
 
 // Shared data model. Designed so the timestamp history we collect now can later
 // power "smart" reminders (learning when a user usually completes a task).
@@ -83,6 +84,7 @@ export interface SpanishProgress {
   learnedCount: number // how many verbs have been revealed so far (0..500)
   lastLearnedDate: string // YYYY-MM-DD of the most recent reveal
   practice?: PracticePrefs // last-used practice settings
+  dialect?: Dialect // Spain (vosotros) or Latin America (ustedes); default Spain
 }
 
 // 'basics' = meanings + present, 'all' = every tense mixed, or one tense.

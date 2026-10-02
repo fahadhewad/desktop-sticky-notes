@@ -16,10 +16,6 @@ export interface SpanishVerb {
   spec: Spec
 }
 
-// Subject pronouns in the order every conjugation array uses.
-export const PRONOUNS = ['yo', 'tú', 'él / ella', 'nosotros', 'vosotros', 'ellos / ellas'] as const
-export const IMPERATIVE_PRONOUNS = ['', 'tú', 'usted', 'nosotros', 'vosotros', 'ustedes'] as const
-
 // Irregular verbs. Anything not listed is regular, or only follows the
 // automatic spelling rules (busqué, cojo, sigo, conozco, construyo, leyó…).
 export const SPECS: Record<string, Spec> = {
