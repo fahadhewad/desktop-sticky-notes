@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { AppState, Board, ScheduleItem, Settings, SpanishProgress, Todo } from './types'
 import { api, DEFAULT_SETTINGS } from './api'
-import { applyTheme, themeFromAccent } from './theme'
+import { applyTheme, frontSurface, themeFromAccent } from './theme'
 import { uid } from './utils'
 import TopBar from './components/TopBar'
 import TodoPanel from './components/TodoPanel'
@@ -217,7 +217,9 @@ export default function App() {
       className="h-full w-full overflow-hidden rounded-xl2 border border-line bg-glass shadow-card backdrop-blur-2xl backdrop-saturate-150"
       style={{
         // Over another app the see-through glass is hard to read, so go solid
-        // and ignore the opacity setting until it drops back to the desktop.
+        // (in the chosen colour, if any) and ignore the opacity setting until
+        // it drops back to the desktop.
+        ...(raised && settings.frontColor ? (frontSurface(settings.frontColor) as React.CSSProperties) : {}),
         opacity: raised ? 1 : (settings.opacity ?? 1),
         backgroundColor: raised ? 'var(--glass-solid)' : undefined,
         transition: 'opacity 0.25s ease, background-color 0.25s ease, border-color 0.6s ease',

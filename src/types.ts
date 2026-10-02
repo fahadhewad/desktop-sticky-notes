@@ -72,6 +72,7 @@ export interface Settings {
   sizeProfiles: SizeProfile[]
   opacity?: number // overall widget opacity (0.6–1)
   launchAtStartup?: boolean
+  frontColor?: string // background (hex) while in front of other windows; unset = follow the theme
   activeBoardId?: string // id of the board shown in the To-do panel
   position?: { x: number; y: number }
   anchor?: Anchor
